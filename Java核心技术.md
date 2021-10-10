@@ -212,20 +212,7 @@ char类型占用2byte，通常不作为一种类型直接使用，而是作为St
 
 ### 类型转换
 
-``` mermaid
-graph LR
-a[int]
-b[short]
-c[double]
-d[long]
-e[float]
-char-->a
-byte-->b-->a-->d
-a-.->e
-d-.->c
-e-->c
-a-->c
-```
+![image-20211010235707872](https://gitee.com/chenyuyu118/project-f/raw/master/image/image-20211010235707872.png)
 
 
 
@@ -319,7 +306,7 @@ System.out.println(a);
 | `^`                                                          | 左     |
 | `\|`                                                         | 左     |
 | `&&`                                                         | 左     |
-| `|\\|`                                                       | 左     |
+| `\|\|`                                                       | 左     |
 | `?:`                                                         | 右     |
 | `=` `+=` `-=` `*=` `/=` `%=` `&=` `\|=` `^=` `<<=` `>>=`  `>>>=` | 右     |
 
