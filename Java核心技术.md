@@ -186,14 +186,23 @@ char类型占用2byte，通常不作为一种类型直接使用，而是作为St
 列举一些值得讨论的数学函数：
 
 > `Math.sqrt(double x)`平方根
+>
 > `Math.pow(double, double)`平方
+>
 > `Math.floorMod(double, double)`获取大于0的余数，原始的%取模运算的到的结果可能存在负值。
+>
 > `Math.exp(double)`自然数指数
+>
 > `Math.PI`，π的近似值
+>
 > `Math.E`自然数对数的值
+>
 > `Math.round(double)`获得最接近的整数值
+>
 > `Math.sin`正弦
+>
 > `Math.cos`余弦
+>
 > …其他想要使用的数学函数均可以在Math类中找到对应的方法。
 
 > tips:Math类的所有方法在对浮点数进行运算时均使用CPU浮点运算单元的例程，这有可能导致在不同机型上运行的结果不相同，如果我们想在不同计算机上获得可预测的结果，可以使用`StrictMath`类，他能保证在所有平台获得相同的运算结果。
@@ -205,12 +214,17 @@ char类型占用2byte，通常不作为一种类型直接使用，而是作为St
 
 ``` mermaid
 graph LR
-char-->int
-byte-->short-->int-->long
-int-.->float
-long-.->double
-float-->double
-int-->double
+a[int]
+b[short]
+c[double]
+d[long]
+e[float]
+char-->a
+byte-->b-->a-->d
+a-.->e
+d-.->c
+e-->c
+a-->c
 ```
 
 
@@ -503,9 +517,13 @@ System.out.println(a);
 两个类拥有相同的方法，我们先以`StringBuilder`类为例，理解它的使用。`StringBuilder`类似于C语言的String，我们可以在任意位置对字符进行删除，插入和修改，然后最后我们通过`toString()`方法将它转化为String类对象。它使用的方法如下：
 `length()`:构建器中的代码单元数目
 `append(String str) append(char c)`：向构建器尾部添加字符串或者字符
+
 `appendCodePoint(int cp)`:向构建器中添加一个码点
+
 `setCharAt(int index, char c)`：设置指定索引的字符为c
+
 `insert(int offset, String str) insert(int offset, char c)`：在指定索引上放入字符，后面字符右移。
+
 `delete(int startIndex, int endIndex)`：删除指定范围的字符。
 
 `StringBuffer`拥有和`StringBuilder`一样的方法，前者效率稍低，但是允许以多线程方式添加和删除字符；后者效率更高，而且如果在单个线程内对字符串进行编辑，就是用`StringBuilder`即可。
@@ -515,18 +533,31 @@ System.out.println(a);
 列举一些上面没有出现过的可以使用到的String API：
 
 `int offsetByCodePoints(int startIndex, int cpCount)`从startIndex开始cpCount个码点后的码点索引，如果超过索引则会抛出异常
+
 `IntStream codePoints()`：返回一个字符串的码点流，可以使用`toArayy()`方法将其转化为`int []`。
+
 `boolean empty()`：字符串是否为空字符。
+
 `boolean blank()`：字符串是否为空格。
+
 `boolean startWith(String prefix)`：字符串是否以前缀开始。
+
 `boolean endWith(String suffix)`：字符串是否以什么后缀接受。
+
 `int indexOf(String str)|indexOf(String str, int startIndex)|indexOf(int cp)|indexOf(int cp, int startIndex)`：返回某个字符或则码点（或者从某个索引开始找），第一个出现的字符的索引。
+
 `int lastIndexof(String str)|lastIndexOf(String str, int fromIndex)|lastIndexOf(int cp)|lastIndexOf(int cp, int fromIndex)`类似于前者，返回索引。
+
 `int codePointCount(int startIndex, int endIndex)`：返回码点总数，这个可以用在`offsetByCodePoint`使用前保证程序的健壮性。
+
 `String replace(CharSequence oldString, CharSequence newString)`：替换字符中的oldString为newString，这里类型CharSequence可以String类和StringBuilder类对象当参数。
+
 `String toLowerCase()`：将字符串中字母都转化为小写。
+
 `String toUpperCase()`：将字符串中字母都转化为大写。
+
 `String trim()`：剔除头部和尾部的小于等于U+0020的字符(trim)。
+
 `String strip()`：剔除头部和尾部的空格。
 
 > tips:查看API文档 :可以反问oracle官网文档[oracle官方API文档](http://docs.oracle.com/javase/9/docs/api)
