@@ -204,7 +204,7 @@ char类型占用2byte，通常不作为一种类型直接使用，而是作为St
 ### 类型转换
 
 ``` mermaid
-flowchart LR
+graph LR
 char-->int
 byte-->short-->int-->long
 int-.->float
