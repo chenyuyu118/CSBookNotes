@@ -551,3 +551,217 @@ System.out.println(a);
 
 ## 3.7 输入和输出
 
+### 读取输入
+
+1. 读取输入借助`Scannner`类对象，它的使用比使用输出类要麻烦许多，同输出一样，我们需要使用标准输入流`System.in`，一个简单实例：
+
+   ```java
+   Scanner in = new Scanner(System.in);
+   String name = in.nextLine();
+   ```
+
+   我们通过构造一个与标准输入流相关的Scanner对象来进行相关操作。注意使用Scanner类时候，需要导入包`java.util`，对于不在`java.lang`包中的类，一定使用`import`指令导入对应的包。
+
+   这个类一些常用的方法如下：
+
+   `String nextLine()`：读取下一行内容
+
+   `String next()`：读取下一个单词，以空格作为分隔符
+
+   `int nextInt()`：下个整数
+
+   `double nextDouble()`：下一个浮点
+
+   `boolean hasNext()`：是否有其他单词
+
+   `boolean hasNextInt()`：是否有其他整数
+
+   `boolean hasNextDouble()`：是否有其他双精度浮点数
+
+2. `Scannner`对象作为读取输入的一种类，它适用于读取一般输入的情况，但是对于读取密码这种有额外需求的输入操作，我们可以使用`Console`类满足我们的需求，它有下面的一些方法：
+
+   `String readLine(String prompt, Object..args)`：读取一行，其中prompt表示输入第提示参数，args为格式化参数。
+
+   `char[] readPassword(String prompt, Object ..args)`：读取密码，回显为空。
+
+   ```java
+   Console cons = System.console();
+   String userName = cons.readLine("User Name:");
+   char[] pwd = cons.readPassword("Password:");
+   System.out.println(userName);
+   System.out.println(pwd);
+   ```
+
+   上面的这个程序可以完成读取用户名和密码的任务，但是要注意在有些IDE中它并不能直接运行，需用通过在命令行中启动它。（在IDE不能启动因为`System.console()`对象在面对不可以交互的对象时会返回null，对于任何在控制台启动都程序都可以使用Console，而其他则取决于系统。
+
+### 格式化输出
+
+java提供了类似于printf的输出控制函数，为`System.out.printf()`方法，但是转换符合标志有一些差异。转换符:
+
+| 转换符 | 类型           | 示例                   |
+| ------ | -------------- | ---------------------- |
+| d      | 十进制整数     | 159                    |
+| x      | 十六进制整数   | 9f                     |
+| o      | 八进制         | 237                    |
+| f      | 定点浮点数     | 15.9                   |
+| e      | 指数浮点数     | 1.59e01                |
+| g      | 通用浮点数     | 选择e和f中比较短的一种 |
+| a      | 十六进制浮点数 | 0x1.fccdp3             |
+| s      | 字符串         | Hello                  |
+| c      | 字符           | H                      |
+| b      | 布尔           | true                   |
+| h      | 散列码         | 42628b2                |
+| tx或Tx | 日期时间       | 过时了                 |
+| %      | 百分号         | %                      |
+| n      | 行分隔符       |                        |
+
+转换符前面需要加上百分号，转换成对应类型。
+
+在%号和转换符之间还可以加上标志符来修饰输出：
+
+| 标志符 | 目的                                                         | 示例      |
+| ------ | ------------------------------------------------------------ | --------- |
+| +      | 打印整数前的符号（+号）                                      | +100      |
+| 空格   | 在正数前面加上空格                                           | 100       |
+| 0      | 在数前面补零                                                 | 01100     |
+| -      | 左对齐                                                       | 111       |
+| （     | 将负数括在括号里，正数不会有括号，有括号的一定是负数而且没有负号 | （100）   |
+| ,      | 添加分组分隔符，三位一分                                     | 3，333    |
+| #      | 浮点数包含小数点，针对f类型符                                | 3,333.    |
+| #      | 针对十六进制x和八进制o，输出前缀0或者0x                      | 0x12f,017 |
+| \$     | 指定参数索引，对于`%1\$d %1\$x`表明打印第一个参数两次，前者用十进制后者用十六进制 | 16 f      |
+| <      | 指定这个参数索引同前面一个,`%d<%x`，打印第一个参数两次，前者十进制后者用十六进制 | 18 12     |
+
+> Tips:`%s`格式转换符可以转换任意的java对象，因为每个java类实现了`Formattable`接口，就调用对应`formatTo`方法，否者调用`toString()`方法将其转化为字符串输出。
+>
+> 对于输出时指定参数索引，索引值从1开始！
+
+### 文件输入和输出
+
+1. 文件输入。
+
+   想要读取一个文件，我们也要借助`Scanner`对象，看下面一个例子：
+
+   ```java
+   Scanner scan = new Scannner(Path.of("1.txt"), StandardCharsets.UTF_8);
+   String s = scan.nextLine();
+   ```
+
+   我们通过给Scanner对象指定一个文件路径来读取它的数据，就像我们指定`System.in`标准输入流一样，注意这里使用Path.of，而不是直接使用路径，因为那样会让Scanner对象以路径作为一个流直接读入，同样对于不同的文件编码格式我们也需要提前指定成对应编码集。
+
+   在这里我们可以使用的相对路径和绝对路径，相对路径为相对于java虚拟机启动的位置。
+
+2. 文件输出。
+
+   同文件输入类似的，我们使用另外一个对象`PrintWrite`，同样也需要提供参数文件名和编码集。我们试图向文件中写数据时通过类似于标准流的操作函数`printf` `printf` `println`即可。对于不存在的文件，系统将会自动创建，对于无法创建的情况，程序会产生严重的异常，我们通常用这样的形式来处理异常：
+
+   ```java
+   public static void main(String args) throws IOException {
+   	Scanner in = new Scanner("1.txt", StandardCharsets.UTF_8);
+   	String s = in.readLine();
+   }
+   ```
+
+## 3.8 控制流程
+
+由于不同语言中这个部分相同的很多，所以也不详细写，下面是一些注意的点：
+
+> tips:java中不允许在同一个块中存在同名变量。
+>
+> `switch case`语句中，如果想要使用直通式（即如果一个条件通过则运行下面所有语句，这样需要每个case下不加上break），我们避免产生警告可以在外围方法上加上注解`:@SuppressWarnings("fallthrough")`这样就不会产生警告，但是如果想要产生警告，我们可以在编译时使用参数`-Xlint:fallthrough`来提示错误。
+>
+> `case`的标签类型可以为`byte` `char` `short` `int` `枚举` `字符串字面量`（java7引入）
+>
+> java中没有goto语句，但是`continue`和`break`语句有跳转功能，依然可以像c语言一样设置标签进行跳转。
+
+## 3.9 大数
+
+对于基本的浮点和整数不能满足我们的精度和大小需求时候，我们可以使用java的大数类`BigInteger`和`BigDecimal`。它有下面这些方法：
+
+`BigInteger valueOf(long)`：将long转为对应的大数；
+
+`new BigInteger(String)`：从一个String转化为大数。
+
+下面分别是加减乘除取模根号常规操作，对于java不存在重载运算符，所以需要用对应方法来进行运算。
+
+`BigInteger add(BigInteger other)`
+
+`BigInteger subtract(BigInteger other)`
+
+`BigInteger multiply(BigInteger other)`
+
+`BigInteger divide(BigInteger other)`
+
+`BigInteger mod(BigInteger other)`
+
+`BigInteger sqrt()`
+
+`int compareTo(BigInteger other)`：这个类似于String类的方法。
+
+大数中另一个类`BigDecimal`也有相对应的方法（除了mod)，但是作为浮点数类型，有另外几个独特的方法：
+
+`BigDecimal divide(BigDecimal other, RoundingMode mode)`这个是divide方法的一个重载形式，后面一个参数为舍入的模式，常用的为`RoundingMode.HALF_UP`四舍五入。
+
+`BigDecimal valueOf(long x, int scale)`:这也是一个重载，返回x/10^scale对应的大数。
+
+## 3.10 数组
+
+### 数组声明
+
+`int []a;`这就为java形式的数组声明，但是这样声明的数组无任何作用，它类似于c语言中的指针类型，而且创建时指向一个空，任何企图对这个对象进行操作的行为都是未定义的，如果想要使用数组我们需要给它指定一个引用的对象:
+
+`int []a = new int[5];`这样就会让a指向一个长度为5的整型数组。（类似于c语言中指针指向一个变量）。或者使用这样的形式：
+
+`int [] a = {1, 12, 3};`后面的语句将会自动创建对应的数组。
+
+完整的数组创建就是需要这样一个完整的过程，一个数组变量需要引用到一个用`new`创建的或者指定内容的数组才可以使用。一旦数组被创建它的长度不可以改变，如果需要经常改变数组的大小我们可以使用数组列表[数组列表](#数组列表)。
+
+java的数组长度声明时可以不为常量，例如：`int []a = new int[n];`通过变量来创建一个数组（类似于c语言的变长数组）
+
+> tips:java中数组内容可以写成这样`{1, 2, };`后面的逗号可以不删去，我们可以在任何时候想向数组尾部添加数据时添加数据
+>
+> java也可以创建匿名数组，它不被任何变量引用，但是可以作为参数传递和使用，形如：`new int[] {1, 2, 3};`
+>
+> java中允许分配长度为0的数组，我们在函数需要返回数组时，结果为空时就返回长度为0的数组即可，但是它并不等价于null。
+
+### 访问数组元素
+
+访问数组元素可以通过`[]`，方框中添加索引，任意数组索引从0到`.length()-1`。
+
+对于使用new方法创建的数组没有给予初始值，不同类型有不同的默认值，一般来说数字类型都为0，boolean类型为false，String类型为null。
+
+> tips:越界访问数组将会产生`array index out of bound`异常。
+
+### 遍历数组
+
+一般而言，我们可以通过这样的形式来遍历数组：
+
+```java
+int [] a = {1, 2, 3, 4, 5, };
+for (int i = 0; i < a.length()-1; i++) {
+	...a[i]; // 遍历语句
+}
+```
+
+java还引入了一种增强for循环来帮助我们遍历对象，对于任何实现了`Iterable`接口的类都可以使用这样的操作：
+
+```java
+for (var i: a) {
+	i; // 循环操作
+}
+```
+
+这样的操作会遍历这个可迭代对象中的每一个值。
+
+> tips:如果我们遍历数组只是打印出其中的每一个值，我们可以使用Array类中的方法：`Array.toString()`,参数为任意数组。这样数组中的元素都会被打印出来：
+>
+> ```java
+> int []a = {1, 2, 3, 4, 5, };
+> System.out.println(Arrays.toString(a));
+> /*
+> [1, 2, 3, 4, 5]
+> */
+> ```
+
+### 数组拷贝
+
