@@ -765,3 +765,94 @@ for (var i: a) {
 
 ### 数组拷贝
 
+我们可以可以使用`=`，来对一个数组进行拷贝，但是对于数组变量之间的这种拷贝，他们只是引用了相同的一个区域，它们中任何对数组的修改都会反馈到整个数组：
+
+```java
+int []a = {1, 2, 3, 4, 5, 6, 7, };
+System.out.println(Arrays.toString(a));
+int []b = a;
+b[3] = 8;
+System.out.println(Arrays.toString(a));
+System.out.println(Arrays.toString(b));
+/*
+[1, 2, 3, 4, 5, 6, 7]
+[1, 2, 3, 8, 5, 6, 7]
+[1, 2, 3, 8, 5, 6, 7]
+*/
+```
+
+有时候这样引用同一块区域可能不是我们想要的，我们想要获得数组的一个完整的副本，可以向下面这样：
+
+```java
+int []a = {1, 2, 3, 4, 5, 6, 7, };
+System.out.println(Arrays.toString(a));
+int []b = Arrays.copyOf(a, a.length);
+b[3] = 8;
+System.out.println(Arrays.toString(a));
+System.out.println(Arrays.toString(b));
+/*
+[1, 2, 3, 4, 5, 6, 7]
+[1, 2, 3, 4, 5, 6, 7]
+[1, 2, 3, 8, 5, 6, 7]
+*/
+```
+
+这时候我们已经获得了完整的拷贝，其中`copyOf`方法的第二个参数是拷贝数组的长度（最后一个不拷贝的元素索引）。
+
+### 命令行参数数组
+
+一般的main方法的参数为`String []args`为一个字符数组，它有这样的特点，在没有参数时`args.length`为0，在程序名后的每个参数都会作为args数组的内容。
+
+```java
+System.out.println(args.length);
+System.out.println(Arrays.toString(args));
+/* 当使用 java Test hello world!调用程序时输出
+2
+[hello, world!]
+*/
+```
+
+### Arrays类的一些api
+
+`static String toString(xxx[] a)`：将数组转为字符串输出。
+
+`static xxx[] copyOf(xxx[], int end)`：拷贝数组并返回拷贝的数组的结果
+
+`static xxx[] copyOfRange(xxx[], int start, int end)`：拷贝指定范围的数组，前者为开始的索引，后者为最后一个不拷贝的索引
+
+`static void sort(xxx[] a)`：以优化过的快速排序算法排序数组
+
+`static int binarySearch(xxx[] a, xxx v)`：以二分法查找元素v，如果查找到返回索引，否者返回-1.
+
+`static int binarySearch(xxx[] a, int start, int end, xxx v)`：同上，不过在指定范围内进行查找。
+
+`static int fill(xxx[] a, xxx v)`：以元素v填充整个数组。
+
+`static boolean equals(xxx[] a, xxx[] b)`：判断两个数组是否含有的元素相同（对应下标的对应元素都相同）
+
+### 多维数组
+
+多维数组的创建：形如`new int[5][5];` `{ {1, 2, 3, 4} {2, 3, 5, } {5, 6, 7, }};`。
+
+多维数组的访问：`a[1][2];`
+
+多维数组的遍历：不可以使用加强for循环遍历数组的每一个元素，但是一层加强for循环可以遍历数组的第一层，对于有n层的数组，我们可以使用n层加强for遍历。同样的想要输出数组的字符串形式，可以使用`Arrays.deepToString()`
+
+不规则数组：java可以创建不规则数组，就像`{ {1, 2, 3, 4} {2, 3, 5, } {5, 6, 7, }};`就创建了一个多维不规则数组，它的第一行有4个元素，但是第二三行只有3个元素。还可以通过下面new的方式创建多维数组：
+
+```java
+int [][]a = new int[3][]; 
+a[0] = new int[] {1, 2, 3, 4};
+a[1] = new int[] {1, 2, 3};
+a[2] = new int[] {1, 2, 3, 4, 5, 6};
+System.out.println(Arrays.deepToString(a));
+/*
+[[1, 2, 3, 4], [1, 2, 3], [1, 2, 3, 4, 5, 6]]
+*/
+```
+
+第一行进行声明，为数组分配了行，下面为数组每行指定了含有的具体一个数组元素。
+
+# 第四章 对象与类
+
+## 4.1 面向对象程序设计概述
