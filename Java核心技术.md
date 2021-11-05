@@ -856,3 +856,111 @@ System.out.println(Arrays.deepToString(a));
 # 第四章 对象与类
 
 ## 4.1 面向对象程序设计概述
+
+### 一些概念
+
+`类class`是构造对象的蓝图或者模板。由类构造(construct)对象的过程成为创建类的实例（instance）。
+
+`封装encapsulation`也称为`数据隐藏`，将数据和行为封装在一个包里，对类的使用者隐藏具体实现方法。对象的数据称为`实例字段 instance filed`，对象的操作数据的过程称为`方法 method`.
+
+任意一个类的`实例`，它有一组特殊的实例字段值，这个值的集合就是当前对象的`状态state`。
+
+对象的三个主要特性：`字段`，`状态`，`标识`（区别具有相同状态和方法的标识）。
+
+> 类之间的关系：`依赖 uses a`,`聚合 has a`,`继承 is a`。
+>
+> - 依赖：比如一个订单类需要使用一个账户类来创建。
+> - 聚合：比如一个汽车类需要一个轮胎。
+> - 继承：比如一个会员类是一个用户类的继承。
+>
+> 他们在UML图中有下面表示：
+>
+> | 关系     | UML连接符号                                                  |
+> | -------- | ------------------------------------------------------------ |
+> | 继承     | ![image-20211105195002564](https://gitee.com/chenyuyu118/project-f/raw/master/image/image-20211105195002564.png) |
+> | 接口实现 | ![image-20211105195029104](https://gitee.com/chenyuyu118/project-f/raw/master/image/image-20211105195029104.png) |
+> | 依赖     | ![image-20211105195117018](https://gitee.com/chenyuyu118/project-f/raw/master/image/image-20211105195117018.png) |
+> | 聚合     | ![image-20211105195159351](https://gitee.com/chenyuyu118/project-f/raw/master/image/image-20211105195159351.png) |
+> | 关联     | ![image-20211105195216423](https://gitee.com/chenyuyu118/project-f/raw/master/image/image-20211105195216423.png) |
+> | 直接关联 | ![image-20211105195233475](https://gitee.com/chenyuyu118/project-f/raw/master/image/image-20211105195233475.png) |
+
+## 4.2使用预定义类
+
+### 对象和对象变量
+
+对象是类的实例，我们往往通过类的构造函数来创建一个这样的对象，构造函数也与类同名，语法形如：`new Class(args)`其中class为类名，args为类构造函数的参数，new为一个操作符（大体可以理解为C++分配空间的操作，我们为类分配空间）。
+
+Java中类对象都储存在堆中，JVM虚拟机来进行垃圾清理操作，我们在创建类后有两种使用策略：`使用对象变量引用`,`直接作为参数传递`.
+
+前者例如：`String s = new String("hello!");`,这样我们就可以通过对象变量s来使用字符串“hello!”；后者：`System.out.println(new String("hello!"))`。我们直接将创建的对象放到了输出流上。
+
+对象变量时对象使用中最常见的部分，它不同于任何的一个变量，有着这个类型的实体部分，它是一种`引用`，引用到一个对象的内存空间（不同于C++的引用，但是类似于C++中的指针）
+
+![image-20211105201817828](https://gitee.com/chenyuyu118/project-f/raw/master/image/image-20211105201817828.png)
+
+对象变量有两种初始化方法：通过new操作符创建对象给对象变量引用；通过引用一个已有的对象变量。但是前者的原理也是new操作符返回一个对象的引用。
+
+对象变量也有两种状态：引用某个部分和未引用任何（引用null）。
+
+对象和对象变量的区别造成了很多问题：比如不能简单使用`=`来对对象进行拷贝，以期保存它在某一时刻的状态。
+
+```java
+StringBuilder builder = new StringBuilder("hello");
+StringBuilder builder1 = builder;
+builder.append(" world");
+System.out.println(builder1.toString());
+// hello world
+```
+
+因为作为对象变量，两者都引用同一个内存区域，所以修改了某一者，另一个也无法独善其身。
+
+还比如不要期望使用`=`使得一个对象变量和另一个对象变量始终保持一致，因为他们随时都可以更改引用区域：
+
+```java
+String s = "hello";
+String s1 = s;
+s += " world";
+System.out.println("s = " + s);
+System.out.println("s1 = " + s1);
+/*
+s = hello world
+s1 = hello
+*/
+```
+
+我们发现s被改变但是s1并未改变，这样的结果和前面例子的情况很让人疑惑，这些不同的情况都是由于类的不同机制导致，但是他们有一个共通的关键点：对象变量为一个引用，当引用同一块区域他们始终相同（第二个例子中s始终引用同一块区域）。还有我么在对类使用赋值符号的时候仔细考虑它的作用是将一个引用地址交给了另一个变量。
+
+关于对象变量的这种引用属性，还会造成很多问题，在了解更多特性时候我们再了解。
+
+### LocalDate的一个例子
+
+```java
+LocalDate date = LocalDate.now();
+int month = date.getMonthValue();
+DayOfWeek day = date.getDayOfWeek();
+LocalDate firstDay = date.minusDays(day.getValue()-1);
+System.out.println("Mon Tue Wed Thu Fri Sat Sun");
+for (int i = 0; i < firstDay.getDayOfWeek().getValue() - 1; ++i)
+    System.out.printf("%3s ", " ");
+var today = firstDay;
+for (int i = 0; i < firstDay.lengthOfMonth(); ++i) {
+    System.out.printf("%3s", today.getDayOfMonth());
+    if (today.equals(date))
+        System.out.print("*");
+    else
+        System.out.print(" ");
+    if (today.getDayOfWeek().getValue() == 7)
+        System.out.println();
+    today = today.plusDays(1);
+```
+
+这个实例能输出一个日历表，并在当前日下做\*号标注：
+
+![image-20211106000713130](https://gitee.com/chenyuyu118/project-f/raw/master/image/image-20211106000713130.png)
+
+我们通过一个Java标准库的例子来简单了解类，首先我们了解下LocalDate类，Java中有两个表示时间的类，一个是来表示时间点的Date类，另一个是日历表示法表示日期的LocalDate类。
+
+第一行，我们创建一个LocalDate对象，通过`静态工厂方法`。这是一种除了构造函数的产生对象引用的方法（本质上它是调用了构造函数），相较于构造函数，它可能需要更少的参数，而且能获得我们所需要的处于某种特殊状态的对象。比如`LocalDate.now()`能获得今天的LocalDate对象，`LocalDate.of(2021, 10, 1);`能返回2021.10.1那一天的日历对象。静态工厂方法就像它的名字一样，像一个工厂，我们提供它一些基本的信息，它能高效生产出可用的对象。
+
+之后我们使用`getMonthValue()`,`getDayOfMonth().getValue()`这两个方法帮助我们获得具体的月份和某一日在某一月的具体位置。这两个方法被称为`访问器方法`，它们的特点是访问对象而不修改对象，这对对象的封装性作用很大，他们访问LocalDate类中的各种我们不可见的字段来计算获得我们需要的数字，我们不需要知道它们是如何工作的，只用知道它可以为我们完成怎么样的工作，这是我们使用类的一大优势。
+
