@@ -937,7 +937,7 @@ s1 = hello
 ```java
 LocalDate date = LocalDate.now();
 int month = date.getMonthValue();
-DayOfWeek day = date.getDayOfWeek();
+DayOfWeek day = date.getDayOfMonth();
 LocalDate firstDay = date.minusDays(day.getValue()-1);
 System.out.println("Mon Tue Wed Thu Fri Sat Sun");
 for (int i = 0; i < firstDay.getDayOfWeek().getValue() - 1; ++i)
@@ -952,6 +952,7 @@ for (int i = 0; i < firstDay.lengthOfMonth(); ++i) {
     if (today.getDayOfWeek().getValue() == 7)
         System.out.println();
     today = today.plusDays(1);
+}
 ```
 
 这个实例能输出一个日历表，并在当前日下做\*号标注：
@@ -964,3 +965,445 @@ for (int i = 0; i < firstDay.lengthOfMonth(); ++i) {
 
 之后我们使用`getMonthValue()`,`getDayOfMonth().getValue()`这两个方法帮助我们获得具体的月份和某一日在某一月的具体位置。这两个方法被称为`访问器方法`，它们的特点是访问对象而不修改对象，这对对象的封装性作用很大，他们访问LocalDate类中的各种我们不可见的字段来计算获得我们需要的数字，我们不需要知道它们是如何工作的，只用知道它可以为我们完成怎么样的工作，这是我们使用类的一大优势。
 
+同样的Java类中还有`更改器方法`,比如`today.plusDays(1)`这个方法将LocalDate对象的所在天数加一，修改了对象的状态，当然因为类的封装性，我们也无法知道方法到底修改了类中什么样的字段。
+
+整个程序我们首先通过`minusDays(date.getDayOfMonth().getValue() - 1)`获得了本月第一天所在的第一天，然后通过打印`today.getDayOfWeek().getValue() - 1`个空格移动到月首需要打印的地方；最后我们通过判断`today.equal(date)`来判断是否到了今天，然后打印`\*`，通过`today.getDayOfWeek() == 7`来进行换行，这个循环执行`date.lengthOfMonth()`次。
+
+## 4.3 用户自定义类
+
+```java
+// EmployeeTest.java
+class Employee{
+    private String name;
+    private double salary;
+    private LocalDate hireDay;
+
+    public Employee(String name, double salary, LocalDate hireDay) {
+        this.name = name;
+        this.salary = salary;
+        this.hireDay = hireDay;
+    }
+    
+    public Employee(String name, double salary, LocalDate hireDay) {
+        this.name = name;
+        this.salary = salary;
+        this.hireDay = hireDay;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public double getSalary() {
+        return salary;
+    }
+
+    public LocalDate getHireDay() {
+        return hireDay;
+    }
+    
+    public void raiseSalary(double byPercent) {
+        double raise = salary * byPercent / 100;
+        salary += raise;
+    }
+}
+
+public Class EmployeeTest{
+public static void main(String []args) {
+        Employee [] staff = new Employee[3];
+
+        staff[0] = new Employee("Carl Cracker", 75000, 1987, 12, 15);
+        staff[1] = new Employee("Harry Hacker", 50000, 1989, 10, 1);
+        staff[2] = new Employee("Tony Tester", 40000, 1990, 3, 15);
+
+        for (var e: staff)
+            e.raiseSalary(5);
+
+        for (Employee e:staff)
+            System.out.println("name = " + e.getName() + ", salary = " + e.getSalary() + ",hireDay = " +
+                    e.getHireDay());
+    }
+}
+/*
+name = Carl Cracker, salary = 78750.0,hireDay = 1987-12-15
+name = Harry Hacker, salary = 52500.0,hireDay = 1989-10-01
+name = Tony Tester, salary = 42000.0,hireDay = 1990-03-15
+*/
+```
+
+上面实现了使用自定义类对员工进行统计和加薪操作，我们来理解自定义类的使用方法。
+
+- 首先我们来看程序入口main对应的主类`EmployeeTest`，它与文件名同名，对于任意java程序，它的任意java文件它的public公共主类必须与文件名同名！！不然编译器会报错。
+
+> 我们亦可以将这个程序分为两个程序文件，将Employee类的代码放入到Employee.java中去，然后编译时候通过`javac Employee*.java`进行编译，这样程序也可以顺利运行的，但是我们也可以通过`javac EmployTest.java`进行自动编译，编译器会查找名为Employee类的`.class`文件，如果不存在则会查找`.java`文件，并将它一同编译，同样的如果字节码`.class`文件长时间没有更新，编译器也会重新再编译`.java`源文件。
+
+- 然后我们来分析Employee类的设计：首先是字段部分
+
+  ```java
+  private String name;
+  private double salary;
+  private LocalDate hireDay;
+  ```
+
+  字段都用了`private`修饰符，表明这些字段只可以在类中被访问，在其他类中无法访问这些字段。字段部分是类中可以被操控的数据部分，是类的根基。
+
+  其次是类的构造函数：`public Employee(String name, double salary, LocalDate hireDay)`构造函数以`public`修饰符开始，表明这个函数在任意类都可以访问，然后类没有返回值(或者说类的返回值是本类的引用)，类的构造函数与类同名，类的参数的设定同一般函数一样。我们如果需要不同参数来构造类，我们可以通过添加不同的参数列表来实现不同的构造函数，这即为函数的重载。
+
+  > 我们发现在类构造函数的实现中，我们的类参数与字段同名，`name`作为这个函数的参数，但是同时也是类的一个私有字段，我们的程序只能通过`this`类的隐式参数来区分同名参数，`this`是一个类对象的`隐式参数`它可以调用类中的任意参数和方法，而且根据覆盖原则，作为参数的`name`将为调用构造函数传递来的String，这样我们就可以初始化类的字段。
+
+  最后就是熟悉的访问器方法和更改器方法，这样我们就定义了一个完整的雇员类。
+
+- 回到主类，我们对于定义的对象变量使用一个数组存储，然后调用它们的更改器方法，提高了它们的薪资，回头看这个`raiseSalary`方法，他没有使用`this`来指示隐式参数，在这个时候`salary`即为默认的类中的`salary`字段，因为类的隐式参数总是默认包含的，在不会产生歧义的情况下，在方法中使用类字段都是可行的。
+
+  最后我们遍历数组，循环输出3个对象的所有信息，在遍历中我们使用for-each循环，并且使用了关键字var自动获取了每个对象的类型信息，对于java中的所有类，如果它们的类型可以从他们的初始值容易推导出来，那么我么可以省略使用类型名，而是简单的使用var来指明。
+
+- 现在我们完成了一个简单类的设计，但是还存在这样一些的问题，我们使用构造函数初始化类的时候，如果恶意破坏者向其中传递了null参数会出现什么情况呢？`Employee(null, 1, null)`。这时候如果我们再不知情，使用了`getHireDay().toString()`那么我么的程序将不可避免的产生`NullPointerExeption`，这样的错误是我们可以在设计阶段进行避免的，通过使用Object类的`requireNonNullElse(arg, defaultValue)`或者`requireNonNull(arg, Megs)`
+
+  ```java
+  this.hireDay = Objects.requireNonNull(hireDay, "HireDay can't be null.")
+  ```
+
+  ```java
+  this.hireDay = Objects.requireNonNullElse(hireDay, LocalDate.now());
+  ```
+
+  前者在我们试图传递null时候报出`NullPointerExeption`，然后顺便显示我们输入的提示信息，方便我们查找错误；后者则可以在我们参数为空时将第二个参数作为值赋给`hireDay`。当不为空时，hireday将会被自动传递，这样我们就提高了程序的健壮性，或者在程序出错的时候很好的纠正错误。
+
+> private的缺陷：我们可以通过private让类中的某个字段称为类外不可访问，我们只使用一个访问器让外界可以访问它，这样就避免在类外被恶意修改，但是这种防护并不是万无一失，对于一个本身可以修改的可变对象，例如Date对象，存在这样的问题：
+>
+> ```java
+> class Demo_4_3_2 {
+>     private Date d;
+>     {
+>         d = new Date(123123);
+>     }
+>     public Date getD() {
+>         return d;
+>     }
+> }
+> 
+> public class Demo_4_3_2_main {
+>     public static void main (String [] args) {
+>         Demo_4_3_2 demo = new Demo_4_3_2();
+>         System.out.println(demo.getD());
+>         Date d = demo.getD();
+>         d.setTime(0);
+>         System.out.println(demo.getD());
+>     }
+> }
+> /*
+> Thu Jan 01 08:02:03 CST 1970
+> Thu Jan 01 08:00:00 CST 1970
+> */
+> ```
+>
+> 我们发现被我们设为私有变量的字段d被再类外修改了，所以当使用本身可以被修改的类作为类字段时候一定要小心，甚至不要这么做，解决办法可以试图返回这个字段的一个副本：
+>
+> ```java
+> public Date getD() {
+>     return (Date) d.clone();
+> }
+> ```
+>
+> 访问类的私有数据时本类的特权，不仅只是一个对象访问自己的字段，对于一个对象他也可以访问同类对象的室友字段，比如我们实现Employee类的`equal`方法来比较员工是否为同一人：
+>
+> ```java
+> boolean equal(Employee other) {
+> 	return name.equal(other.name) && hireDay.equal(other.hireDay) && salary == other.salary
+> }
+> ```
+>
+> 这里我们仅仅使用`other.name`就可以访问另一个employee对象的私有字段，因为这样更方便我们的比较（有关这个方法，存在很多问题，我们日后将会对它进行不断的完善）
+>
+> 私有方法的使用，我们并不总需要将类方法设为私有，我们对类中的方法和字段需要根据我们的需要来自由设置访问限制，前面已经给出了私有字段和共有方法的使用情形，对于私有方法，我们可以设计它来作为类自己使用的工具，它可以来协助一个或者多个共有方法完成任务。
+>
+> 在类中的常量字段，我们能将实例字段声明为`final`，来表明我们不希望对象在使用时对这个值进行修改，就如我们使用`Math.PI`它就是一个类中的常量，使用修饰符`final`作为标记，并且所有常量字段都需要在对象定义时候初始化！！但是由于java中对象变量的性质，当我们将一个可变对象设置为`final`，它甚至也是可以进行修改的，例如`StringBuilder`类，我们的对象变量只是引用了这个对象，使用`final`表明它不可以引用到其他变量，但是他却可以通过`.append`方法来改变所代表字符串的内容，要严加注意这样的使用！
+
+## 4.4 静态字段和静态方法
+
+- 静态字段，所谓静态字段，即为一个类所有对象所共享的一个字段，它属于整个类，而不属于任何对象。例如：
+
+  ```java
+  class Demo_4_4_1 {
+      static public int times;
+  
+      public Demo_4_4_1() {
+          times++;
+      }
+  }
+  
+  public class Test1 {
+      public static void main (String []args) {
+          for (int i = 0; i < 100; ++i) {
+              Demo_4_4_1 demo = new Demo_4_4_1();
+              System.out.println("times = " + demo.times);
+          }
+      }
+  }
+  /*
+  times = 1
+  times = 2
+  ……
+  times = 100
+  */
+  ```
+
+  我们在类`Demo_4_4_1`中定义静态变量`times`，在不为它赋初值时候，java会为它赋值为0，然后我们使用构造函数初始化一个对象时，将它自加，通过创建100个这样的对象，我们发现`times`随着类的增加也在不断增加，100个D对象也只对应1个`times`字段。
+
+  静态字段往往可以引用与上面的计数场景，同时也可以应用于静态常量部分，这样能极大程度的节省对象所占用的空间：
+
+  对于Math类中的一般常量`PI`,如果我们创建n个Math类的对象，那么一个对象中这个字段将会占8byte，n个就会浪费8(n-1)byte，非常的不合理，使用`static`修饰符，将它作为静态常量则不会产生这样的损失。
+
+  > `System.out`对象也是一个System类的一个静态常量，表示标准输出流，但是作为常量它也是可以更改的，因为存在一个`setOut`方法预先定义在类中，这个方法是一个`原生方法`，并不是通过java实现，绕过了java的控制机制，这是一种系统的特殊解决方法，不要过多模仿。
+
+- 静态方法
+
+  静态方法是不在类上执行的方法，我们可以认为它默认不含`this`隐式参数，因为它不在类上执行，所以我们不能访问类的私有字段，但是它可以访问类的静态字段（无论公有还是私有）。
+
+  ```java
+  class Demo_4_4_1 {
+      static private int times;
+  
+      public Demo_4_4_1() {
+          times++;
+      }
+  
+      public static int getTimes() {
+          return times;
+      }
+  }
+  
+  public class Test1 {
+      public static void main (String []args) {
+          for (int i = 0; i < 100; ++i) {
+              Demo_4_4_1 demo = new Demo_4_4_1();
+              System.out.println("times = " + demo.getTimes());
+          }
+      }
+  }
+  ```
+
+  和上例相同，我们改装出一个静态访问器方法，就可以访问类的私有对象。这是作为静态方法和静态字段的特殊规则，当然我们也可以选择将这个静态头衔去掉，方法仍然是可用的。静态方法独特的含义就在于，它可以不依赖于一个对象，我们可以直接通过`类名.方法名(参数列表)`来使用，这同时也是静态参数的优点，使用类中的静态部分，我们都建议使用`类名.`的形式直接访问。
+
+  这样来看静态方法的使用场景如下：
+
+  - 方法不需要访问对象状态，它需要的所有参数都由显示参数提供。
+  - 方法需要的参数只包括类的静态字段。
+
+  > 工厂方法：工厂方法作为一种常用的静态方法，来帮助我们构建一个我们需要的类。例如：
+  >
+  > ```java
+  > NumberFormat currencyFormatter = NumberFormat.getCurrencyInstance();
+  > NumberFormat percentFormatter = NumberFormat.getPercentInstance();
+  > double x = 0.1;
+  > System.out.println(currencyFormatter.format(x));
+  > System.out.println(percentFormatter.format(x));
+  > 
+  > /*
+  > ¥0.10
+  > 10%
+  > */
+  > ```
+  >
+  > 我们创建了两个类对象来帮助我们规范输出数字，在这里并没有使用类的构造函数而是静态的工厂方法，这样做的原因有：
+  >
+  > - 我们需要得到不同类型的两个类对象，一个用于货币的规范表示，另一个则为百分比的表示，他们的并不能相互兼容。
+  > - 我们使用构造器获得对象时，类的类型为固定的，不能适用我们的情形，因为这两者都为`DecimalFormat`类对象，是`NumberFormat`类的子类，后面我们会继续说明。
+  >
+  > 这样来看，工厂方法能通过静态方法，高效的批量为我们产生我们需要的对象。
+  >
+  > main方法：在程序启动是没有任何对象。静态方法将执行并构造程序所需的对象。每个类都可以有一个main方法，我们可以编写它作为类的测试方法，当多个类都含有main方法时也不会出现冲突，只要我们选择合适的main入口即可，比如我们的`Employee`类，即使我们给他编写了main方法，当我们在程序启动时使用`java EmployeeTest`那么Employee类中的main方法就永远不会执行。java命令后面跟随不同的字节码文件名将决定我们执行哪个类的main方法。
+
+## 4.5 方法参数
+
+首先我们了解下程序设计语言中函数（方法）传递参数的方式：
+
+- `按值调用`：方法只是接受调用者变量提供的值。
+- `引用调用`：方法接受传递来的变量的地址。
+
+这两种方法将会导致这样的差异，前者的方法无法通过一般手段修改变量的本身，它仅仅只是得到了一个副本。后者则在每次被调用时都可以对变量进行同步修改，变量在方法中的修改将是永久不可逆的。
+
+java选择的方式为按值调用，方法将总会得到参数的一个副本，但是java中变量有两种类型：`基本数据类型`和`对象引用`。对于基本数据类型毫无疑问通过这种方法传参它是绝对不可改变的；但是传递对象引用时，因为我们可以对一个可变对象进行修改，所以它并不能保证我们传递的参数不被修改，两种值得思考的情形：
+
+```java
+class Demo_4_5_1 {
+    public static void tripleSalary(Employee e) {
+        if (e != null)
+            e.raiseSalary(200);
+    }
+    public static void main(String []args) {
+        Employee e = new Employee("Elk", 2000, 1997, 8, 1);
+        System.out.println("Employee: " + e.getName() + ", salary: " + e.getSalary()
+                + ", hireDay: " + e.getHireDay());
+        tripleSalary(e);
+        System.out.println("Employee: " + e.getName() + ", salary: " + e.getSalary()
+                + ", hireDay: " + e.getHireDay());
+    }
+}
+/*
+Employee: Elk, salary: 2000.0, hireDay: 1997-08-01
+Employee: Elk, salary: 6000.0, hireDay: 1997-08-01
+*/
+```
+
+我们创建一个Employee类对象，然后通过一个`tripleSalary`方法就在函数调用的同时修改了员工的薪资，因为传递的对象变量作为引用，被引用空间的部分是可以修改的，要多加注意。
+
+```java
+class Demo_4_5_2 {
+    public static void swap(Employee e1, Employee e2) {
+        var temp = e1;
+        e1 = e2;
+        e2 = temp;
+    }
+    
+    public static void main (String []args) {
+        Employee e1 = new Employee("Elk", 2000, 1997, 8, 1);
+        Employee e2 = new Employee("Alice", 3000, 1998, 1, 1);
+        System.out.println("Employee: " + e1.getName() + ", salary: " + e1.getSalary()
+                + ", hireDay: " + e1.getHireDay());
+        System.out.println("Employee: " + e2.getName() + ", salary: " + e2.getSalary()
+                + ", hireDay: " + e2.getHireDay());
+        swap(e1, e2);
+        System.out.println("Employee: " + e1.getName() + ", salary: " + e1.getSalary()
+                + ", hireDay: " + e1.getHireDay());
+        System.out.println("Employee: " + e2.getName() + ", salary: " + e2.getSalary()
+                + ", hireDay: " + e2.getHireDay());
+    }
+}
+
+/*
+Employee: Elk, salary: 2000.0, hireDay: 1997-08-01
+Employee: Alice, salary: 3000.0, hireDay: 1998-01-01
+Employee: Elk, salary: 2000.0, hireDay: 1997-08-01
+Employee: Alice, salary: 3000.0, hireDay: 1998-01-01
+*/
+```
+
+我们又编写了一个方法swap，这个方法企图交换两Employee对象，但是结果并不如我们所愿。因为传递的仅仅只是对象引用，我们改变这个引用的指向并不可以反馈到原来的引用上。
+
+![image-20211107190705777](https://gitee.com/chenyuyu118/project-f/raw/master/image/image-20211107190705777.png)
+
+我们在函数中的操作只是改变了这几个变量的引用对象，不可以反馈到原变量，因为我们并没有获得原变量的地址，但是之前的例子可以改变里面的内容，因为对象引用即为对象的地址！
+
+总结一下，Java中的方法参数有下面特性：
+
+- 方法不可以修改基本数据类型的参数。
+- 方法可以改变对象参数的状态。
+- 方法不可以让一个对象引用一个新的对象。
+
+> 理解了上面的特性，我们也可以想出一个可以实现交换两个Employee对象的方法，动过更改器，我们逐个设定交换它们的所有字段即可，这样也是可以的，具体实现略。
+
+## 4.6 对象构造
+
+对象的构造对于java是非常重要的，java为对象构造提供了丰富的机制。
+
+### 重载
+
+存在一个方法，它与同类中的方法同名，但是存在着不同的参数（不同表现在个数和参数类型不同的组合上），这个方法就被称为方法的`重载`。编译器更具调用方法名，匹配对应参数，获得能够匹配方法的过程叫做`重载解析`。区别不同重载方法的本质是区别它们的函数`签名`，函数签名为方法名和方法参数的组合，返回值并不属于方法签名的部分，也就是说同一个类中不能存在名称和参数类型相同但是返回值不同的方法。
+
+在进行重载解析时，会优先匹配所有类型都相匹配的方法，如果不能匹配则可以匹配进行强制类型转换的函数，如果都没有则会匹配失败。
+
+### 默认字段初始化
+
+对于类中未被显示初始化的值，java执行默认字段初始化，数值型将为0，boolean型为false，对象引用为null。
+
+> 在大多情况下，我们都不推荐执行某人初始化，因为这样可能会极大影响代码可读性，而且对于为null的对象引用很有可能造成`NullPointerExeption`异常。所以我么在编写构造函数时，可以随便进行一些简单的初始化操作：`String name = ""`，即使它本身也是没有什么意义的。
+
+### 无参数的构造器
+
+无参数构造不接受任何参数，尽量将对象的字段设置有含义的，较少产生错误的形式，例如下面Employee类的构造器 ：
+
+```java
+public Employee() {
+    name = "";
+    salary = 0;
+    hireDay = LocalDate.now();
+}
+```
+
+我们可以自己定义这样的构造器，但是当我们不定义任何构造器时，编译器会为我们产生这样的构造器，执行默认字段初始化，尽量避免这样的情况！当我们定义了任意一个构造器，系统将不会产生这样的无参构造器。对于一个定义一般构造器但是没有定义默认构造器的类，调用默认构造器将会产生错误，当然产生一个无参的使用默认字段初始化的构造器是非常简单的：
+
+```java
+public Employee(){
+}
+```
+
+它不需要执行任何语句，因为某人字段初始化时自动进行的。
+
+### 显式字段初始化
+
+我们在类中声明字段的同时就可以给字段进行赋值，这被称为显示字段初始化，在获得一个新的类对象是，回先执行所有显式初始化。
+
+### 参数名的设置
+
+前面我们看到，使用和类中字段名相同的名称作为参数传递时的变量名，我们也可以用这些字符的首字母进行代替，来简便编写构造器（因为不需要使用this指代隐式参数）。但是这样做又没有很好的阅读性，我们可以试着在这些参数前面加上`a`，比如`aName`。
+
+### 调用其他构造器
+
+当我们定义多个构造器中存在重复的部分，我们完全可以将代码部分被包含构造器直接利用起来来方便我们使用，例如Employee类：
+
+```java
+public Employee(String name) {
+    this.name = name;
+}
+
+public Employee(String name, double salary, int year, int month, int day) {
+    this(name);
+    this.salary = salary;
+    this.hireDay = LocalDate.of(year, month, day);
+}
+```
+
+如果存在第一个构造器这样通过name初始化的构造器，我们可以在下面这个需要更多参数的构造器中调用它来防止编写重复的代码（虽然它不一定是高效的，因为方法之间传递可能带来额外内存开销，这只作为举例，如果存在更多代码那么一定是值得的）。
+
+使用`this`关键字即可调用类中其他构造器，但是这样的构造器必须将调用的构造器放在最开始，而且一个构造器只能调用另外一个构造器。
+
+### 初始化块
+
+我们现在了解了初始化类中字段的两种方法：`在构造器中赋值`，`在声明同时赋值`。还有一种机制：`初始化块`。
+
+在一个类中可以包含任意的块，我们在类中定义的任意块都会在构造函数执行前被调用：
+
+```java
+class Employee{
+    private String name;
+    private double salary;
+    private LocalDate hireDay;
+	
+    // 初始化块1
+    {
+        System.out.println("被调用先于构造器1, 此时name = " + Objects.requireNonNullElse(name, "null"));
+    }
+
+    public Employee() {
+        name = "";
+        salary = 0;
+        hireDay = LocalDate.now();
+    }
+
+   ……
+    public double getSalary() {
+        return salary;
+    }
+    
+	// 初始化块2
+    {
+        System.out.println("被调用先于构造器2, 此时name = " + Objects.requireNonNullElse(name, "null"));
+    }
+
+	……
+        
+    public static void main(String []args) {
+        Employee e = new Employee("Lily", 2000, 1665, 9, 10);
+        System.out.println("Employee: " + e.getName() + ", salary: " + e.getSalary()
+                + ", hireDay: " + e.getHireDay());
+    }
+}
+/*
+被调用先于构造器1, 此时name = null
+被调用先于构造器2, 此时name = null
+Employee: Lily, salary: 2000.0, hireDay: 1665-09-10
+*/
+```
+
+我们在Employee类中插入了两个初始化块，然后我们会发现这两个块执行先于构造器，因为此时name还未被赋值。
