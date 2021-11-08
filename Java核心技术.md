@@ -1,4 +1,4 @@
-# Java核心技术卷一 基础知识
+Java核心技术卷一 基础知识
 
 # 第3章 Java的基本程序设计结构
 
@@ -1549,5 +1549,97 @@ var d2 = new java.sql.Date();
 
 为了是的我们的类文件更容易共享，我们做到下面几点：
 
+1. 将类文件放到一个路径下，如`E:\classdir`，我们之前知道任何类指定包名都必须在对应包的路径下，我们将包放到该路径下，该路径就作为基路径，如果我们有类Employee属于包`com.horstmann.corejava`在其中，我们必须确定它就在路径`E:\classdir\com\horstmann\corejava`下。
 
+2. 将所有jar文件放到一个路径下，如`E:\archieve`。
+
+3. 设置类路径(class path)。==类路径是包含类文件的路径的集合。==在不同操作系统下，类路径有不同准则：
+
+   在UNIX下，类路径的各个项目之间使用`:`分隔：
+
+   `/home/usr/classdir:.:/home/usr/archieve`
+
+   在Windows下，类路径各个项目则使用`;`分隔：
+
+   `E:\classdir;.;E:\archieve`
+
+   上面两个类路径是共同的，他们的意义如下：
+
+   - 基路径`E:\classdir`。
+   - 当前路径`.`。
+   - JAR文件路径`E:\archieve`。
+   - 所有Java API都默认在类路径下，不必显式指明。
+
+Java中设置类路径是搜索类的一个起点，java的编译器和虚拟机对它类文件的查找有着不同的机制：
+
+- javac编译器在使用类时会先搜索java API，如果没有指定这个类所在的包，那么类将会类文件起始查看import语句，例如：
+
+  ```java
+  import java.util.*;
+  import com.horstmann.corejava.*;
+  ```
+
+  如果使用Employee类，那么编译器将先尝试查找`java.lang.Employee`，然后是`java.util.Employee`，然后`com.horstmann.corejava.Employee`，最后是当前包下的`Employee`类，如果查找到了多个结果将会报错（除非下面加上了再次指定），否则就得到了完整限定了类名，通过这个类名来查找对应类文件。这件事对于别的包文件是简单的，因为一个包只能引用其他包的公共类，只用通过查找包中的源文件名即可，对于当前包下的类，需要查找所有源文件来找到对应的类。
+
+  在执行查找类对应的文件这个行动中，我们的编译器总会搜索当前文件夹，及时它没被包含在类路径下，编译器也会查找所有Java API和类路径下的文件。
+
+  编译器还会完成更多工作，它将对比查找到的类文件和源文件，如果字节码文件版本落后于源文件，编译器将会将源文件重新编译一次更新字节码文件为最新状态
+
+- java虚拟机的行为就简单很多，它会根据完全限定类名查找Java API，如果查找不到则会转而寻找类路径，例如`com.horstman.corejava.Employee`类，Java API中显然没有这个类，更具我们之前定义的类路径，他还会查找：
+
+  `E:\classdir\com\horstman\corejava\Employee.class`
+
+  `.\Employee.class`
+
+  `在jar文件中查找Employee.class`
+
+  这意为着虚拟机不会默认查看当前路径，当我们不设置类路径时，默认的类路径会包含当前路径，如果我们设置了类路径却没有包含`.`，那么当前路径默认不会被包含。这可能导致某些在当前路径下定义的类，我们可以通过编译器完成编译，但是无法在错误的类路径下运行。
+
+### 设置类路径
+
+我们可以通过下面的方式设置类路径：
+
+- `-classpath 类路径`，`-cp 类路径`和`--class-path`在编译和运行时指定类路径。
+
+- 也可以一劳永逸的设置CLASSPATH环境变量，在Bash中可以这样:
+
+  `export CLASSPATH=类路径`
+
+  在Windows Shell中可以这样：
+
+  `set CLASSPATH=类路径`
+
+  当shell未退出时，这样类路径设置是始终有效的。
+
+我们了解了类路径如何设置，现在来验证下编译器和虚拟机的类查找机制：
+
+![image-20211108210938870](https://gitee.com/chenyuyu118/project-f/raw/master/image/image-20211108210938870.png)
+
+我们试图编译类`Test1.java`，它在文件夹`E:\CoreJavaVolume\src\Charpter2`中，引用了在同一个包下的非共有类`Test.java`文件下的`ForImport`，我们在它们的包的基目录下，无论指定什么类路径都可以完成编译。更换路径：
+
+![image-20211108211134191](https://gitee.com/chenyuyu118/project-f/raw/master/image/image-20211108211134191.png)
+
+但是当我们回到上一级文件夹，而且指定类路径不正确，编译就会失败。添加合适的类路径：
+
+![image-20211108211319596](https://gitee.com/chenyuyu118/project-f/raw/master/image/image-20211108211319596.png)
+
+指定了类路径为`E:\CoreJavaVolume\src`这时候又可以编译成功，所以我们可以判断编译器搜索类将会搜索当前目录和类路径。
+
+> PS：为什么类路径为`E:\CoreJavaVolume\src`，因为类`ForImport`的完整类名为`Charpter2.ForImport`，所以查找时为`类路径\Charpter2\ForImport.class`。
+
+对于Java虚拟机，我们的查找路径仅局限于Java API和类路径，不设置任何类路径时为当前路径，尝试运行（这里注意运行java程序时，对于有包名的程序一定要严格指定包名）：
+
+![image-20211108213322382](https://gitee.com/chenyuyu118/project-f/raw/master/image/image-20211108213322382.png)
+
+因为当前路径下查找不到对应主类，尝试下面方法：
+
+![image-20211108213026170](https://gitee.com/chenyuyu118/project-f/raw/master/image/image-20211108213026170.png)
+
+切换路径就成功运行，我们也可以通过指定类路径来运行：
+
+![image-20211108213418335](https://gitee.com/chenyuyu118/project-f/raw/master/image/image-20211108213418335.png)
+
+> Java9后我们也可以通过模块路径加载类，后面将会学习到。
+
+## 4.8 JAR文件
 
