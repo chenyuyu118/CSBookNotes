@@ -6,12 +6,12 @@
 
 ### 整型：
 
-| 类型 | 大小  | 范围                  |
-| ---- | ----- | --------------------- |
-| int  | 4byte | $-2^{31}$ ~ $ 2^{31}-1$ |
-| short | 2byte | $-2^{15}$~$2^{15}-1$ |
-| long | 8byte | $2^{63}$~$2^{63}-1$ |
-| byte | 1byte | $2^{7}$~$2^7-1$ |
+| 类型  | 大小  | 范围                    |
+| ----- | ----- | ----------------------- |
+| int   | 4byte | $-2^{31}$ ~ $ 2^{31}-1$ |
+| short | 2byte | $-2^{15}$~$2^{15}-1$    |
+| long  | 8byte | $2^{63}$~$2^{63}-1$     |
+| byte  | 1byte | $2^{7}$~$2^7-1$         |
 
 > Tips:长整型有后缀`l`或者`L`，十六进制数有前缀`0x 0X`，八进制有前缀`0`，二进制有前缀`0b 0B`，同时整型的字面常量可以加上`_`下划线来予以标识：`100_100_100`；
 
@@ -88,8 +88,8 @@ char类型占用2byte，通常不作为一种类型直接使用，而是作为St
 >
 > ```java
 > \u0053\u0079\u0073\u0074\u0065\u006d\u002e\u006f\u0075\u0074\u002e\u0070\u0072\u0069\u006e\u0074\u006c\u006e\u0028\u0022\u8fd9\u4e2a\u662f\u0055\u006e\u0069\u0063\u006f\u0064\u0065\u7f16\u7801\u0022\u0029\u003b
->     
->  // 这段java代码也可以编译通过，等价于：System.out.println("这个是Unicode编码");
+> 
+> // 这段java代码也可以编译通过，等价于：System.out.println("这个是Unicode编码");
 > ```
 >
 > 所以在任意时候，我们使用\u符号都要注意！！
@@ -102,18 +102,18 @@ char类型占用2byte，通常不作为一种类型直接使用，而是作为St
 > String s = "\uD835\uDD46";
 > System.out.println("\uD835\uDD46");
 > for (char x:"\uD835\uDD46".toCharArray()) {
->     System.out.printf("0x%x\n", (int)x);
+> System.out.printf("0x%x\n", (int)x);
 > }
 > System.out.println("0x" + Integer.toHexString(s.codePointAt(0)));
 > System.out.printf("%d", "占用byte:\uD835\uDD46".getBytes(StandardCharsets.UTF_8).length);
 > 
 > // 上面的字符串为𝕆，占用两个代码单元（两个char），自身为一个码元，上面的输出为
 > /*
->     𝕆
->     0xd835
->     0xdd46
->     0x1d546
->     15
+> 𝕆
+> 0xd835
+> 0xdd46
+> 0x1d546
+> 15
 > */
 > // 显示出来的结果表明该字符前两位char值为d835、dd46但是转为int值为1d546,之间包含了某种特别的算法
 > ```
@@ -139,7 +139,7 @@ char类型占用2byte，通常不作为一种类型直接使用，而是作为St
 > ```java
 > String s = "hello";
 > for (var c : s.toCharArray())
->     System.out.println(c);
+> System.out.println(c);
 > ```
 >
 > 
@@ -160,13 +160,13 @@ char类型占用2byte，通常不作为一种类型直接使用，而是作为St
 >
 > ```java
 > enum Size{
->         LARGE,
->         SMALL
->     }
->     public  static void main(String[] args) {
->     Size s = Size.LARGE;
->     System.out.println(s);
->     }
+>   LARGE,
+>   SMALL
+> }
+> public  static void main(String[] args) {
+> Size s = Size.LARGE;
+> System.out.println(s);
+> }
 > ```
 
 ## 3.5 运算符
@@ -376,11 +376,11 @@ System.out.println(a);
 
    字符串中的空串指`“ ”`，而Null指的是java中所有类都共享的一个空的引用`Null`，作为null值有着很大的隐患，我们无法在任何一个null值上调用方法，不然会出现错误。java中判别空串使用
    `str.length() == 0`或者`str.equals("")`。
-   
+
    而判别使用字符串是否为Null使用。
-   
+
    `str == null`
-   
+
 3. 字符串的实现
    java中的字符串使用char值的序列构成，前面说过char为使用UTF-16编码的表示Unicode码点的代码单元，一个Unicode字符对应一个码点，一个常用码点用一个代码单元可以表示，辅助字符则需要两个代码单元。有特例就是对于只含单字节代码单元的字符串底层使用byte数组实现。
 
@@ -487,7 +487,7 @@ System.out.println(a);
    有方法`equals(Object anObject);`比较任意可以与String转换的类与调用字符串之间是否相等，返回boolean值。
    同样还有方法`equalsIgnoreCase(String anotherString);`同一个字符串比较，不管他们的大小写。
    除了这些返回boolean类型的方法外，类似于C语言，有方法：`compareTo(String anotherString);`这个方法可以返回一个int值：当两个字符相同时返回0，否则返回第一个不相同字符的差（第一个串的字符减去第二个串的字符）。 
-   
+
    ```java
    System.out.println("aas".compareTo("aar"));
    System.out.println("abc".compareTo("acb"));
@@ -1073,23 +1073,23 @@ name = Tony Tester, salary = 42000.0,hireDay = 1990-03-15
 >
 > ```java
 > class Demo_4_3_2 {
->     private Date d;
->     {
->         d = new Date(123123);
->     }
->     public Date getD() {
->         return d;
->     }
+> private Date d;
+> {
+>   d = new Date(123123);
+> }
+> public Date getD() {
+>   return d;
+> }
 > }
 > 
 > public class Demo_4_3_2_main {
->     public static void main (String [] args) {
->         Demo_4_3_2 demo = new Demo_4_3_2();
->         System.out.println(demo.getD());
->         Date d = demo.getD();
->         d.setTime(0);
->         System.out.println(demo.getD());
->     }
+> public static void main (String [] args) {
+>   Demo_4_3_2 demo = new Demo_4_3_2();
+>   System.out.println(demo.getD());
+>   Date d = demo.getD();
+>   d.setTime(0);
+>   System.out.println(demo.getD());
+> }
 > }
 > /*
 > Thu Jan 01 08:02:03 CST 1970
@@ -1101,7 +1101,7 @@ name = Tony Tester, salary = 42000.0,hireDay = 1990-03-15
 >
 > ```java
 > public Date getD() {
->     return (Date) d.clone();
+> return (Date) d.clone();
 > }
 > ```
 >
@@ -1407,3 +1407,147 @@ Employee: Lily, salary: 2000.0, hireDay: 1665-09-10
 ```
 
 我们在Employee类中插入了两个初始化块，然后我们会发现这两个块执行先于构造器，因为此时name还未被赋值。
+
+为什么要使用初始化块呢？我们大可以使用显式初始化来完成这样的工作，这个机制的意义就在于我们可以使用块的形式进行一系列的计算再进行初始化，我们可以可以执行任意我们想添加的语句，它能完成比显式初始化更多的任务。
+
+初始化块也可以定义在任意位置声明的字段，但是定义在它之后完成定义（声明并赋值）的变量是没有意义的，因为后面的定义一定会将这个值覆盖，而且这个块不能读取后面进行了定义的变量！
+
+### 对象构造的顺序
+
+了解了对象初始化的所有机制 ，我们来将它们放到一起来分析下一个对象完整的构造过程：
+
+- 如果一个构造器调用了另一个构造器，基于参数先执行另一个构造器。
+- 否则，
+  - 所有数据字段初始化为期某人值（0，false或者null）。
+  - 按照在类中声明的顺序，执行所有字段初始化块和初始化块
+- 执行构造器代码主体
+
+下面是一个例子：
+
+```java
+class Demo_4_6_2 {
+    private int a = 1;
+    private int c = 2;
+    private int b = 3;
+    {
+        System.out.println("块1执行 a=" + a + ", b=" + b + ", c=" + c);
+        b = 2;
+        System.out.println("块1执行结束 a=" + a);
+        System.out.println();
+    }
+    public Demo_4_6_2() {
+    }
+    public Demo_4_6_2 (int a, int b) {
+        System.out.println("构造方法1倍调用 a=" + a + ", b=" + b + ", c=" + c);
+        this.a = a;
+        this.b = b;
+        System.out.println("构造方法1倍调用结束 a=" + a + ", b=" + b + ", c=" + c);
+        System.out.println();
+    }
+    public Demo_4_6_2 (int a, int b, int c) {
+        this(a, b);
+        System.out.println("构造方法2倍调用 a=" + a + ", b=" + b + ", c=" + c);
+        this.c = c;
+        System.out.println("构造方法2倍调用结束 a=" + a + ", b=" + b + ", c=" + c);
+    }
+    
+    public static void main(String[] args) {
+        Demo_4_6_2 demo = new Demo_4_6_2(1, 2, 3);
+    }
+}
+
+/*
+块1执行 a=1, b=3, c=2
+块1执行结束 a=1
+
+构造方法1倍调用 a=1, b=2, c=2
+构造方法1倍调用结束 a=1, b=2, c=2
+
+构造方法2倍调用 a=1, b=2, c=3
+构造方法2倍调用结束 a=1, b=2, c=3
+*/
+```
+
+因为使用构造的构造器2调用了构造器1,所以执行构造器1首先。构造器1执行时所有字段执行默认初始化，然后依次序执行初始化块，最后执行构造器1中的代码，然后返回到构造器2中继续执行剩下的代码，一个对象构造成功。
+
+
+
+## 4.7 包
+
+### 包名的规范
+
+包名使用域名的逆序来写：`com.horstmann.corejava`大体如这样，对于包中的类Employee，它的完全限定名是：`com.horstmann.corejava.Employee`。
+
+> 嵌套的包名之间也没有任何关系，因为==每个包名都是独立类的集合==，例如`java.util`与`java.util.jar`就是毫无关系的。
+
+### 类的导入
+
+默认情况下一个类可以访问同一个包下的所有类，和其他包的公共类。
+
+为了拓展使用其他包中的类，我们可以加上完全限定：`java.time.LocalDate date;`这样我们就声明了一个LocalDate类对象。
+
+但是这样太过于繁琐，我们使用关键字`import`来导入其他包的公共类，形如`import java.time.\*`后面的`\*`为通配符，表明导入对应包下的所有类，有时候我们可能不需要使用那么多类，或者为了更明确表明我们使用了哪些类，我们可以写的更详细点：`import java.time.LocalDate;`。
+
+> import语句只能导入一个包中的所有类，而不能导入某个类子包下面的所有类，如果需要使用某个类，我们必须导入它所直属的包。
+
+如果出现同名的类在不同的包中都被导入了会怎么样呢？编译器会报出错误，例如`java.util.Date`和`java.sql.Date`两个类被导入：
+
+```java
+import java.util.*;
+import java.sql.*;
+
+……
+Date d = new Date(); // 编译器会对此报错
+```
+
+这时候如果我们只想使用其中的一个类，可以这样解决：
+
+```java
+import java.util.*;
+import java.sql.*;
+import java.util.Date;
+……
+Date d = new Date(); // 这样就是使用java.util.Date类
+```
+
+如果两个类我们都需要使用呢，我们就只能详细指定他们所属的包名：
+
+```java
+var d1 = new java.util.Date();
+var d2 = new java.sql.Date();
+```
+
+> import作为一个关键字，它提供的作用只是让我们能更简洁的编写代码，因为对任意一个类，如果他对虚拟机是可见的，我们就可以使用它的完整限定类名进行使用，通过import只是让我们可以省略那长长的前缀。
+
+### 静态导入
+
+普通导入导入的是类，静态导入则导入类中的静态字段和静态方法。
+
+我们可以静态导入Math类中的静态方法来方便我们的代码编写，例如`import static java.lang.Math.\*`我们就可以通过`pow()`，`sqrt()`和`PI`简单的使用Math类中的静态方法和字段。
+
+同一般导入一样，我们也可以具体指定导入的方法名和字段名。
+
+### 包中增加类
+
+向包中增加类需要我们在`.java`类源文件中的开头增加指定`package 包名;`，如果没有增加以上指定，这个类将属于`无名包 unnamed package`。
+
+> 注意几点，向包中添加类是一定要加上指定包的语句，这样在以后导入时候才可以使用包名来找到它，否则在默认包下我们只能通过反射机制访问。
+>
+> 对于类源文件不在包中，但是指定了相应包名，java编译时可以通过编译，但是运行时将会出错。显示找不到主类，所以指定类的包名十分必要，而且十分需要准确符合包结构。
+
+### 包访问
+
+对于类中字段和方法的访问权限，有指定修饰符的两种`public`共有，`private`私有，当我们未明确指明访问权限的时候，这时候的访问权限为`包访问`，同一个包内的类都可以对该类中的包访问字段和方法访问。
+
+使用包访问权限来设置字段和方法是非常值得注意的，因为对一个我们封闭好的包，如果某些字段和方法的访问权限是这样的，我们完全可以编写一个类，在开头指定包名为它，然后可以随意访问和修改这些字段，调用这些方法，但是我们本身可能并不像让其他自定义类调用这些方法和访问这些字段。
+
+### 类路径
+
+我们从前面知道，类指定包名必须要和它所在的路径匹配，我们的类文件有两种形式可以供我们使用：一时直接以文件形式存储，一种是被压缩到jar包（java归档包）中给我们使用，这是很有益的，因为它既节省了空间又改善了程序性能。
+
+> jar文件问使用ZIP格式组织的文件和子目录，可以使用任何ZIP工具查看jar文件。
+
+为了是的我们的类文件更容易共享，我们做到下面几点：
+
+
+
