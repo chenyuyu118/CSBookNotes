@@ -1655,8 +1655,132 @@ jar文件的优势，我们将程序打包时，希望以一个单独的文件�
 
 | 选项 | 说明                                                         |
 | ---- | ------------------------------------------------------------ |
-| c    | 创建爱你一个新的或者空的归档未缴纳并加入文件，如果指定文件名是目录，jar会对它们进行递归处理 |
-| C    | 切换临时目录                                                 |
-| e    | 在清单文件中创建一个入口点                                   |
-| f    | 指定JAR文件名作为第二个命令行参数。如果没有参数，jar命令将结果写至标准输出（在创建之前）或者从 |
+| c    | 创建一个新的或者空的归档未缴纳并加入文件，如果指定文件名是目录，jar会对它们进行递归处理 |
+| C    | 切换临时目录来进行压缩                                       |
+| e    | 在清单文件中创建一个入口点（指定一个类，从这个类的main函数开始执行） |
+| f    | 指定JAR文件名作为第二个命令行参数。如果没有参数，jar命令将结果写至标准输出（在创建之前）或者从标准输入中读取（解压或者读取jar内容时） |
+| i    | 建立索引文件（用于大型归档中的查找）                         |
+| m    | 将一个清单文件添加到jar文件中。清单是对归档内容和来源的一个说明。每个归档有个默认的清单文件。如果想验证归档文件中的内容，可以提供自己的归档文件 |
+| M    | 不为归档文件创建清单文件                                     |
+| t    | 显示内容表                                                   |
+| u    | 更新一个jar文件                                              |
+| v    | 生成详细额输出结果                                           |
+| x    | 解压文件，提供一个或者多个文件名只解压这些文件；否则解压所有问价 |
+| 0    | 储存，但是不进行ZIP压缩，可以在运行jar文件时候更快           |
 
+### 创建索引
+
+通过对一个存在的jar文件可以建立它的索引`jar i *.jar`，例如下面：
+
+![image-20211109090439601](https://gitee.com/chenyuyu118/project-f/raw/master/image/image-20211109090439601.png)
+
+我们解压得到的jar文件，可以在MATA-INF文件中可以找到`INDEX.LIST`文件，里面内容为具体索引，包含了jar包中包含的所有包：
+
+![image-20211109090655050](https://gitee.com/chenyuyu118/project-f/raw/master/image/image-20211109090655050.png)
+
+### 清单文件
+
+清单文件描述归档文件的特性，我们通过下面命令创建一个jar包：
+
+```bash
+jar cvfe test.jar Charpter2.Test1 .\Charpter2\*.class .\Charpter2\child\*.class .\Charpter2_2\*.class
+```
+
+![image-20211109090845697](https://gitee.com/chenyuyu118/project-f/raw/master/image/image-20211109090845697.png)
+
+得到了在`MATA-INF`中的默认`MANIFEST.MF`：
+
+![image-20211109090950066](https://gitee.com/chenyuyu118/project-f/raw/master/image/image-20211109090950066.png)
+
+其中指明了Mainifest的版本，java包版本，还有我们指定的程序入口。
+
+我们也可以自己编写清单文件来使用，编写`hello.mf`来使用：
+
+![image-20211109092638532](https://gitee.com/chenyuyu118/project-f/raw/master/image/image-20211109092638532.png)
+
+> 这里编写的方式为key-value，中间用冒号分隔，还必须有一个空格，编码选择ANSI，结尾以回车结束必须！
+
+这时候再用下面命令制作jar包：
+
+```bash
+jar cvfm test.jar .\hello.mf .\Charpter2\*.class
+```
+
+解压产生的jar包，发现其中的`META-INF\MANIFEST.mf`中内容
+
+![image-20211109093024231](https://gitee.com/chenyuyu118/project-f/raw/master/image/image-20211109093024231.png)
+
+和我们编写的一致。
+
+### 执行jar文件
+
+jar文件不仅作为一个压缩文件，可以供我们其他文件引用，自己本身也可以执行，我们可以在制作是指定入口点（这就是我们平时在java启动时指定的类），有两种方法指定jar包的入口点：
+
+```bash
+ jar cfe test.jar Charpter2.Test1 .\Charpter2\*.class
+```
+
+这样就指定了入口点为`Charpter2.Test1`
+
+还可以咋清单文件中指定，通过下面的一个键值对：
+
+```java
+Main-Class: Charpter2.Test1
+```
+
+通过这样的策略生成jar文件后，我们可以命令来执行jar文件,`java -jar *.jar`，这样会在命令行执行jar文件，它会启动我们指定的入口类：
+
+![image-20211109093655888](https://gitee.com/chenyuyu118/project-f/raw/master/image/image-20211109093655888.png)
+
+普通的jar文件也可以不通过命令行执行，对于不同操作系统，它有不同的机制：
+
+- 在Windows系统中，双击jar文件将启动`javaw -jar \*.jar`命令，这个命令将不会产生命令行，直接执行java GUI程序。
+- Mac OS X平台将会识别`jar`文件，直接运行。
+
+当然，使用jar文件作为应用和原生应用（\*.exe)感觉还是有所不同，我们可以通过包装器工具来生成`.exe`文件，包装器是一个exe文件，查找和加载JVM来运行自身。
+
+### 多版本jar文件
+
+java9推出了多版本jar，他用来解决这样的问题，一些类的架构随着java版本更新发生改变，它被移到了其他的一些包，例如JavaFx8的`com.sun.javafx.css.CssParser`类，到了Java9改用了`javafx.css.CssParser`，我们需要向Java8和Java9的用户同时提供服务，我们解决这个问题的方法就是使用多版本jar文件，在JAR包中可以包含多个版本的类文件来使用。
+
+为了向后扩展新版本的类文件将会放在`META-INF\versions`文件中，对于旧版本的java，它是对其中的类不可见的，我们仍然可以使用主文件中属于它的版本的类来运行程序，但是对于新版本会自动加载`META\versions`中的属于它的版本的类文件。
+
+创建一个多版本jar文件我们可以使用更新的jar包的形式来实现，先创建旧版本可以使用的jar包，然后更新，例如（仅做示例，我并没有使用多版本）：
+
+```bash
+jar uf test.jar --release 9 .\Charpter2\Test1.class
+```
+
+这样我们再观察产生的jar包：
+
+![image-20211109100033992](https://gitee.com/chenyuyu118/project-f/raw/master/image/image-20211109100033992.png)
+
+我们可以看到在`META-INF\versions`目录下出现了表示版本9的额外类文件。
+
+我们也可以重头开始创建一个多版本jar文件，不过需要多次切换目录，例如（仅做示例）：
+
+```bash
+jar cf test.jar -C .\8 . --release 9 -C .\9 Application.class
+```
+
+通过-C可以帮助我们切换目录，可以减少书写绝对路径。
+
+这里我们可能也需要面对多个版本进行编译，我们可以通过`-d`选项来指定输出目录：
+
+```bash
+javac -d .\8 --release 8
+```
+
+> 多版本jar只是让我们的程序适应在不同版本的类文件调整，我们可以通过它在不同的java版本上运行，但是并不能让我们在旧版本java使用新版本的特性。
+
+### 命令行参数的说明
+
+jar命令使用的方式类似于tar命令，但是对于大多数java命令的都通常使用短横线模式，例如：`java -jar`。Java9后java开始使用多字母选项明前加上两个短横线，例子：使用`--class-path`替代`-classpath`，使用`--version`替代`-version`。
+
+参数的标准为：使用多字母选项的参数和选项用空格或者等号分隔：`javac --class-path E:\`或者`javac --class-path=E:\`
+
+单字母选项参数使用空格分隔或者直接跟在选项后：`javac -p moduledir`或者`javac -pmouledir`后一种方式强烈不建议使用，因为单词合在一起可能会造成严重歧义。
+
+无参数的单字母选项可以组合到一起，例如`jar cvf`
+
+## 4.9 文档注释
