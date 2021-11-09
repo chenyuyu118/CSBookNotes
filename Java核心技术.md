@@ -1784,3 +1784,126 @@ jar命令使用的方式类似于tar命令，但是对于大多数java命令的�
 无参数的单字母选项可以组合到一起，例如`jar cvf`
 
 ## 4.9 文档注释
+
+我们需要为我们的类编写文档，以便它更好的提供别人使用，自己编写完档是一件挑战很大的工作，我们可以使用javadoc开发工具自动生成开发文档，我们只需要遵守一些注释规范，javadoc就可以从我们的注释中提取信息生成完整的项目文档。
+
+### 注释的插入位置
+
+我们首先需要了解的javadoc的规范就是javadoc用来生成文档所使用的信息的范围，毕竟我们也不想将过的的实现细节都公布当文档中，鉴于此，javadoc只会从下面的这些部分抽取信息：
+
+- 模块；
+- 包；
+- 公共类与接口；
+- 公共的和受保护的字段；
+- 公共的和受保护的构造器及方法。
+
+javadoc只会从上面的部分抽取注释信息，我们可以为上面的各个部分编写注释（而且尽可能编写），注释放在这些部分的前面，以/\*\*开始，以\*/结束。这个注释部分包含标记（以@开始的特殊部分）和自由格式文本。
+
+自由格式文本第一句为概要部分，javadoc根据其生成概要页，之后的文本中可以使用html修饰符，例如`<strong></strong>`强调，项目列表`<ul>/<li>`，图像`<img>`和等宽代码`{@Code}`(这里不使用尖括号是因为如果代码里面存在尖括号可能还需要额外转义)。
+
+### 具体注释
+
+- 类注释在import语句之后，在类定义之前，形如：
+
+  ```java
+  import java.util.Math.*
+  
+  /**
+  	A <code>Card</code>
+  * object
+  */
+  public class Card{
+      
+      
+  }
+  ```
+
+  每一行的星号我们可以加也可以不加。
+
+- 方法注释，一个方法注释必须在它所描述的方法之前。除了使用通用标记，还可以使用下面特殊的标记：
+
+  - @param 后面跟参数和对应描述，一个方法只能使用一个这样的标记我们可以在其中添加html标记
+  - @retur 后面跟返回值的描述，也可以使用html标记
+  - @throws 这个表明类将会抛出异常
+
+  下面是一个简单的示例：
+
+  ```java
+  /*
+  	Raises the salary of an employee.
+  	@param byPercent the percentage by which to raise the salary(e.g., 10 means 10%)
+  	@return the amount of the raise
+  */
+  public double raiseSalary(double byPercent) {
+      ……
+  }
+  ```
+
+- 字段注释：在字段之前，只可以对公共字段（通常也是静态常量）建立文档。例如：
+
+  ```java
+  /**
+       * The {@code double} value that is closer than any other to
+       * <i>pi</i>, the ratio of the circumference of a circle to its
+       * diameter.
+  */
+  public static final double PI = 3.14159265358979323846;
+  ```
+
+- 通用注释：由通用标记产生有含义的注释。有下面的一些标记（用于类注释文档）：
+
+  - @author 指示这个类的作者，可以使用多个，每个对应一个作者，这个标记并不是必要的，因为版本控制系统可以很好的跟踪作者。
+  - @version 这将成为一个“version”条目，文本是当前版本的描述。
+  - @since 这个条目将会建立一个“since”条目（始于），后面跟文本是引入这个特性的版本的任意描述。
+
+  还有一些其他常用的标记：
+
+  - @see 后面更一个超链接只是“see also”（参见），有两种形式：
+
+    - see package.class#feature lable，例如： `@see     java.lang.Integer#MIN_VALUE`
+
+      ![image-20211109170028258](https://gitee.com/chenyuyu118/project-f/raw/master/image/image-20211109170028258.png)
+
+      它的结果导出结果即为这样的链接，可以将我们导入到这个静态常量所在处。
+
+      ![image-20211109170112507](https://gitee.com/chenyuyu118/project-f/raw/master/image/image-20211109170112507.png)
+
+      后面#跟着的内容可以是类、变量和其他公有方法，如果是本类的话不用具体描述包和类。使用#号的原因是javadoc本身很难分隔具体的包，类、方法和变量这些内容。
+
+    - 还可以使用html标记的形式来使用see，`<a href>label</a>`例如
+
+      ```html
+      <a href="{@docRoot}/../specs/serialization/protocol.html#stream-elements">Object Serialization Specification, Section 6.2, "Stream Elements"</a>
+      ```
+
+      上述的标签都是可选的，省略标签label作为链接锚点，那么链接内容将自动作为锚。
+
+    - see后面还可以跟引号内容，内容将作为文本展示，例如`@see "Test1"`。
+
+    @see标记可以在一个特性上使用多次，但是多个@see标记必须放在一起。
+
+  - @link 大体上同see，但是只用来插入链接，我们通常使用`{@link package.class#lable}`在字段中插入链接。
+  - @index 可以标记为搜索框增加一个搜索条目。
+
+-  包注释：一般的注释直接写到java对应源文件的位置，如果想添加包注释，我们需要在包目录下添加一个单独的文件来完成这项工作，有两个选择：
+  1. 提供`package-info.java`文件，其中开始部分添加正常的注释，之后是一个package语句，不能再向这个java文件中添加更多的内容。
+  2. 提供一个`package.html`的html文件，里面的`<body></ body>`之中的所有文本都会被作为javadoc的抽取部分。
+
+### 注释抽取
+
+我们使用javadoc在所有注释都编写完成后进行抽取形成类文档，首先切换路径到需要产生文档源文件的根目录，然后执行命令：`javadoc -d docDirectory nameOfPackage …… `
+
+这个命令中`-d`指示生成文档存放的文件夹，建议一定要指定该文件夹，因为javadoc产生的文档众多，默认情况将产生在当前路径造成混乱，后面我们可以添加任一个包提取注释，如果添加无名包则使用`\*.java`，我们也可以单独为一个一个源文件产生文档（显然这是大材小用的）。
+
+> javadoc有一些很好用的参数，我们可以使用`-link`来将所有标准类自动链接到Java官方文档网站上。
+>
+> `-linksource`可以将源码转为html文本生成到文档中。
+>
+> `-overview filename`可以为所有源文件提供一个概要注释，这个file需要是一个html文件，将会提取其中`<body></ body`中的所有内容作为概要。
+
+## 4.10 类设计技巧
+
+
+
+
+
