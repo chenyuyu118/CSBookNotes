@@ -2276,3 +2276,57 @@ public int hashCode() {
 
 ### toString方法
 
+toString方法是我们重要的一个方法，它可以展示当前对象的众多信息，以Point类为例：
+
+```java
+System.out.println(new Point().toString());
+// java.awt.Point[x=0,y=0]
+```
+
+Java中toString的输出模式通常为`类名[字段名=字段值...]`，我们可以在设计我们的类的时候多使用这样的形式，如果是继承类我们可以这样`类名[超类字段名=超类字段名...][子类字段名=子类字段值]`。以Employee类为例：
+
+```java
+public String toString() {
+    return getClass().getName() 
+        + "[name=" + name 
+        + ",salary=" + salary 
+        + ",hireDay=" + hireDay + "]";
+}
+
+public static void main(String[] args) {
+    Employee e = new Employee("Li Hua", 2000, 2021, 12, 1);
+    System.out.println(e.toString());
+}
+
+// Charpter5.Employee[name=Li Hua,salary=2000.0,hireDay=2021-12-01]
+```
+
+这样就很简明的显示了对象的所有信息了，对于它的子类Manager我们也可以简单编写toString方法通过super来引用父类方法：
+
+```java
+public static void main(String[] args) {
+    Manager m = new Manager("Li Hua", 2000, 2021, 12, 1, 1000);
+    System.out.println(m.toString());
+}
+
+// Charpter5.Manager[name=Li Hua,salary=2000.0,hireDay=2021-12-01][bonus=1000.0]
+```
+
+在`System.out`输出一个对象的toString信息时，我们完全省略toString方法调用的显式书写，这个方法会自动调用；在执行任意对象与String对象的连接时，一个对象的toString方法也会被自动调用。总的来说在大多数最终结果为String时，toString方法都会被自动调用，我们可以完全省略书写toStirng方法，或者简单使用`“” + 对象变量`，这样也可省略显示调用toString方法。
+
+toString方法对我们的用处众多，我们完全可以使用它来进行调试，将它的信息输出到我们的日志信息中去。
+
+```java
+public static void main(String[] args) {
+    Manager m = new Manager("Li Hua", 2000, 2021, 12, 1, 1000);
+    Logger.getGlobal().info("" + m);
+}
+
+/*
+11月 21, 2021 11:13:32 上午 Charpter5.Test main
+信息: Charpter5.Manager[name=Li Hua,salary=2000.0,hireDay=2021-12-01][bonus=1000.0]
+*/
+```
+
+## 5.3 泛型数组类型
+
