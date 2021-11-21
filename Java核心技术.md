@@ -1933,7 +1933,346 @@ javadoc只会从上面的部分抽取注释信息，我们可以为上面的各�
 
 # 第五章 继承
 
+## 5.1 类、超类和子类
 
+### 继承，重载
 
+子、超分别对应`sub`，`super`，对应集合中子集和超集。超类拓展得到类，类拓展得到子类。
 
+我们通过关键字`extends`定义子类，语法大概为
+
+```java
+class Manager extends Employee{
+
+}
+```
+
+在这个新定义的类中，我们可以添加新的方法，比如`setBonus`，它可以为经理设置奖金。
+
+```java
+public class Manager extends Employee{
+	private double bonus;
+    pulbic void setBonus(double bonus) {
+        this.bonus = bonus;
+    }
+}
+```
+
+我们使用继承，目的是基于已有的类来拓展类的功能，就如上面的`setBonus`，可以让我们为经理设置奖金，但是超类的方法对于我们来说不总是有用，我们可以采用`覆盖`的操作来让超类的方法适应子类的使用。
+
+但是，覆盖的操作要怎么完成呢？例如覆盖`getSalary`操作，让它也计算奖金部分，也许可以这样：
+
+```java
+public double getSalary() {
+	return salary+bonus;
+}
+```
+
+但是这是不可能的，因为java私有类的成员只能被自己访问，也许我们可以调用父类的方法来完成这样的工作：
+
+```java
+public double getSalary() {
+	return getSalary() + bonus;
+}
+```
+
+这也显然是不对的，因为它是一个明显的循环调用的操作，不出意外它将陷入死循环，如何实现覆写的机制呢，java为我们提供了关键字`super`进行支持：
+
+```java
+public double getSalary() {
+	return super().getSalary() + bonus;
+}
+```
+
+通过super关键字可以调用超类的getSalary方法来获得salary字段，这是java提供给子类的访问父类的一个途径。
+
+> Tips：注意super不是一个对象变量，这是它同this的最大区别，它只是作为一个关键字，告诉我们的编译器它应该调用超类的方法。他不能作为返回值返回父类的对象。
+>
+> 继承的类会保留父类的所有字段和方法，我们可以进行覆写方法，但是仍然在类定义中可以通过`super`关键字来调用超类的方法，但是，一旦一个类方法被覆写，我们在创建的类对象上只能调用覆写的方法：
+>
+> ```java
+> Manager m = new Manager();
+> Employee e = m;
+> e.getSalary();// 只能是Maager.getSalary();
+> ```
+>
+> 这里面Employee对象引用也可以引用Manager的现象称为多态。最后根据实际类型调用方法被称为动态绑定（dynamic binding）。
+
+### 继承层次
+
+由一个公共超类派生出来的所有类的集合称为`继承层次`，从某个类到祖先列的路径称为该类的`继承链`。
+
+> Java不支持多重继承，但是提供类类似多重继承的功能。
+
+### 多态
+
+继承关系，`is a`可以进行表述，比如`Manager is a Employee`。运用到类的使用，就是`替换原则`，程序中任何使用超类的地方必定可以使用子类替代。
+
+```java
+Employee e;
+e = new Employee(); // 正常赋值
+e = new Manager();// 这样也是可以赋值的
+```
+
+一个对象变量可以引用它自身和它的子类的任意对象就是多态，我们称之为`多态`，
+
+但是多态只针对子类到超类，如果想让父类转为子类对象，那么可能出现错误，因为超类本身并没有子类新增的很多字段和方法。
+
+> 思考这样一种情况，我们的超类变量本身引用的就是一个子类对象，我们能不能将它转回子类本身呢？当然是可以的，但是我们要使用强制类型转换，而且我们要一定确保这个超类对象引用的就是子类对象！这样的使用是很危险的，我们在变量间相互引用是尽量不要造成这么令人疑惑的情形。我们也要十分清除变量引用的到底是什么类型的值。
+>
+> ```java
+> Manager m = new Manager("Lily", 2000.0, 1998, 8, 7, 2000.0);
+> Employee e = m;
+> // Manager m1 = e; 不是用强制类型转换会报错
+> Manager m2 = (Manager) e; 
+> ```
+
+### 方法调用的过程
+
+对于一个方法调用`x.f(args);`
+
+1. 编译器查看变量的声明类型和方法名，然后根据这个可以查找出这个类中的所有类名为`f`的函数，可能他们的参数并不相同，为`String`，`int`都有可能，编译器会将他们都列出来。
+
+2. 编译器根据传递参数类型，确定具体会使用哪个函数，如果有完全匹配的类型，那么毫无疑问可以选择该函数，如果未找到完全匹配的类型，那么将会选择可以进行类型转换得到存在函数需要参数最接近类型的函数。如果没有找到这样的函数或者找到了多个这样的函数，那么就会报错。
+
+   > 上面确定一个函数的部分叫做函数的签名，包含方法的名称和参数。
+   >
+   > 注意一个方法的返回类型不是它的签名部分，在继承中可能出现这样的情况，一个重载方法可以使用同父类不同的返回类型，但是这个类型必须是父类方法返回类型的子类，这个方法称为有`可协变的`返回类型。
+
+3. 确定了一个具体的方法的签名后 ，我们还有找到具体合适的方法，因为在继承的存在下，一个方法可能是从父类继承或者进行了重写，根据类型来确定具体方法的入口很有必要。有两种情形：
+
+   对于private，static，final方法或者构造器，显而易见他们不可能被重写，我们可以唯一确定他们的入口（private子类不可见，static方法所有类对象公用一个，final方法不可覆写），这称为静态绑定。
+
+   与之对应更多存在的是动态绑定方法，这样的方法在C++中需要通过关键字`virtual`，但是在Java中它是默认的，我们需要依赖隐式参数的类型决定调用什么方法。
+
+4. 对于一个动态绑定方法，虚拟机必须调用与x实际类型对应的方法，要搜索所有x对应类中的方法，如果没有继续寻找x对应父类是否定义了这个方法，知道找到为止（这个搜索不会过多向上寻找当在子类中找到可用的方法，因为自己覆写的方法总是优先于父类的方法）。
+
+   这个过程是一个消耗很大的过程，所偶有虚拟机会为每个类都优先计算一个`方法表`，列出类所有的方法签名和对应实际会调用的方法，例如我们之前的Employee类：
+
+   ```java
+   Employee:
+   getName() -> Employee.getName()
+   getSalary() -> Employee.getSalary()
+   getHireDay() -> Employee.getHireDay()
+   raiseSalary() -> Employee.raiseSalary()
+   hashCode() -> Object.hashCode()
+   ……
+   ```
+
+   这里连当然省略了很多从Object类中继承类的方法。
+
+了解了方法调用的过程，对于具体的`e.getSalary()`方法，调用的顺序是这样的：
+
+1. 获取的e的实际类型的方法表。
+2. 虚拟机查找定义了`getSalary()`签名对应的类，然后虚拟机就找到类具体调用的方法。
+3. 虚拟机调用方法。
+
+> 动态绑定有一个优点，无需对现有代码进行修改，如果我们使用新的一个子类`Executive`，然后继续使用它的父类`Employee`来引用它，然后调用`e.getSalary()`，我们不需要再次对于这样的代码进行再次编译也可以运行，运行时会自动调用`Executive.getSalary()`（子类重写了这个方法）。
+
+> 覆盖一个方法，子类方法可以修改子类的返回类型，和访问可见性，但是子类的可见性不可以低于超类，如果超类为`protected`,子类可见性可能为`public`和`protected`；超为`public`，子类只能为`public`;超类为`private`，这样就没有限制了，而且这样的超类方法对子类是不可见的，我们完全可以将与超类`private`方法同名的方法认为是一个新的方法。
+
+### final阻止继承
+
+我们可以将不想让其他类继承的类定义为`final`类，将不想让子类覆写的方法定义为`final`方法。`final`也可以对于字段使用，不过意义就是我们之前的常量字段，它在类使用构造函数构造后将不可以再被修改值。当一个类为`final`，它的方法将自动为`final`（因为类不可以被继承，属于类特征的覆写也就没有了），它的字段则不一定为`final`。
+
+使用`final`是我们维护类的重要方式，对于任何不需要根据情形修改类方法和字段的类，我们都建议使用`final`类，就例如Java实现的`String`类，他就是一个`final`类，我们不可以通过对它继承来作为一些需要String对象引用的作为参数的函数，这样对程序是很有益的。
+
+`final`方法也是如此，并且它也对程序性能有很多优化，因为对于final方法将会使用静态绑定，JVM不需要很多精力来寻找方法，而且编译器可以使用内联优化，（例如，e.getSalary()，如果使用了内联优化，编译器将会将其替换为e.salary，当然我们不能通过语法来访问这样的内容)这样的好处就是程序不要要在众多的函数之间跳转，跳转也会在一些方面花费掉程序的执行时间。对于final方法，编译器很明显的能被进行这样的优化，因为我们可以确定没有其他的子类来覆写，它的行为是完全可以预料的。
+
+### 强制类型转换
+
+我们可以在类的继承链上进行强制类型转换：
+
+- 对于子类对象变量赋值给超类不需要这样的转换，而且是完全合法的，这是多态性的体现。
+- 一个超类对象变量实际引用子类对象，我们将它转为对应的子类对象需要进行强制类型转换，而且这也是合法的，因为它是一个多态性的体现或者是将对象变量对应它所属的类型。
+- 将一个超类对象变量使用强制类型转换为子类是违规的，系统将会产生`ClassCastExeption`。
+
+鉴于这些情形，我们需要在任何进行强制类型转换的地方，使用`instanceof`关键字来判断一个对象变量是否为类的实例：
+
+```java
+if (e instanceof Employee)
+{ }
+```
+
+这个判断将确定e是不是Employee类型，或者是它的子类类型，如果正确返回true，对于null引用，这也是能派上用场的，对于e为null一定会返回false，因为null不是任何类对象实例。
+
+> 尽量减少instanceof和强制类型的使用，使用正确的类型可以提高代码可阅读性，而且不会出错。
+
+### 抽象类
+
+可能有这样的一种类，我们不需要这个类的实例，具有很高抽象性，但是定义它也是很具有实际意义的，因为子类可以从中获得很多需要覆盖的方法和字段，所以我们可以使用抽象类，它是位于类继承层次中最高层的存在。
+
+任何含有抽象方法的都为抽象类，不需要对Java中的抽象类进行任何特殊的声明，一个抽象方法在访问修饰符后加`abstract`关键字，它不需要任何实现，存在的唯一作用就是等待子类来实现，来达到一种通用的抽象。当然我们可以在类中定义非抽象的方法，这两种做法都是有作用的，建议是尽量将字段和方法（无论是否抽象）放在超类中。
+
+> 对于一个抽象类，我们定义它的子类可以选择将它的抽象方法实现或者是不，如果不实现那么这个类将会是一个抽象度低一些的抽象类。
+
+抽象类不能实例化为一个对象，我们不可以使用`new AbstractClass()`语法创建一个抽象类的对象，但是抽象类仍然有发挥它更多作用的地方：我们可以使用抽象类变量引用它子类的对象，而且在子类上调用在抽象父类声明的方法：
+
+```java
+// Person抽象类它有子类Employee
+class Person {
+	private String name;
+    public virtual String getName();
+}
+
+public class Test {
+    public static void main(String []args) {
+        Person e = new Employee(...);
+        e.getName();
+    }
+}
+```
+
+这样的调用会不会是危险的呢？因为我们并没有实现`getName()`函数，但是并不用担心，因为我们不可以创建一个抽象类对象，所以我们变量的引用肯定是实现了方法的子类对象，完全不需要担心!
+
+> 抽象方法在Java中非常重要，在接口（interface）中，大都有抽象方法等待着我们实现。
+
+### 受保护访问
+
+有的时候，我们希望类中的字段在子类中更好访问，例如`salary`，我们不希望大费周章让子类使用`getSalray`方法类获得一个返回值，也不想使用超类的修改器`setSalary`，我们可以将父类字段`salary`设为`protected`，这样这个字段可以被类的子类直接访问，但是Java在安全性上也有欠缺，在同一个包中的其他类也有该受保护部分的访问权限。
+
+就此，我们见识到了Java中所有的访问控制级别：
+
+- 仅对本类可以见：private
+- 对本包和所有子类可见：protected
+- 对于本包可以见：不需要任何修饰符
+- 对于外部完全可见：public
+
+## 5.2 Object：所有类的超类
+
+### Object类型变量
+
+java中除了基本类型（int，double…)之类的部分都是类的对象，Java中所有类的最终的父类即为Object类，所有Object对象变量都可以引用任意类（以Employee类为例）：
+
+```java
+Empoloyee e = new Employee();
+Object o = e; // 这样可以
+LocalDate d = LocalDate.now();
+o = d; // 这样也可以
+```
+
+对于任意的数组，它也是Object类的子类：
+
+```java
+int []a = new int[100];
+Object o = a;
+o = new double[100];
+```
+
+我们任意自定义的类虽然不指定继承的类为Object，但是它也会将Object类作为超类。
+
+这样的机制对于我们来说用处很多（Java自身实现也依赖于此），但是Object类本身并没有什么意义，它没有什么有意义的字段，我们可以用强制类型转换将Object类转为它实际的类型。我们使用java类最多的是它原本实现的一些方法，它们具有很好的普遍性，下面来了解众多有用的Object方法。
+
+### equals方法
+
+Java中没有运算符重载，所以我们想要对于特定的类实现对象比较，要使用`equals`方法重载，某人情况下Object类为`equals`方法设定为：
+
+```java
+public boolean equals(Object obj) {
+    return (this == obj);
+}
+```
+
+这样的意义为当两个对象引用同一个部分时，毫无疑问他们是相等的。我们在需要进行比较的子类中重写这个方法：
+
+```java
+public class Employee {
+...
+    public boolean equals(Object obj) {
+        if (obj == this) return true; // 如果地址相等，无疑他们相等
+        if (obj == null) return false; // 如果为空不要调用，防止Null调用方法
+        if (getClass() != obj.getClass()) return false; // 确认类需要相同
+        Employee e = (Employee) obj; // 强制类型转换
+    	// 比较所有字段
+        return e.getName.equals(name) && 
+            e.getSalary() == salary &&
+            e.getHireDay().equals(hireDay);
+    }
+    ...
+}
+```
+
+通过很严密的编排，我们似乎得到了一个具有很高可用性的函数，但是它仍然存在局限：如果`name`，`hireday`字段也为空怎么办呢？如果e的类为它的子类也可以进行比较怎么办？对于第一种，我们可以使用`Object.equals(e.getName(), name);`这样及时它们为空，这个方法也会返回`false`，后面一个问题就很难以理解，我们的子类和父类有相同字段，有些时候我们希望他们进行比较：比如不同实现的集合类`HashSet`和`TreeSet`。但是有时候我们也不希望进行比较：`Employee`和`Manager`，一个经理可能不是一个普通的雇员。
+
+Java语言规范要求Equals具有下面特征：
+
+1. 自反性：对于任何非空引用x，`x.eqauls(x)`返回true。
+2. 对称性：对于任何引用x和y，如果`x.equals(x)`和`y.equals(y)`那么他们的结果相同。
+3. 传递性：如果`x.equals(y)`，`y.equals(z)`，那么`x.equals(z)`。
+4. 一致性：如果x，y引用的对象没有发生修改，那么`x.equals(y)`将会返回相同的结果。
+4. 对于任意非空x，`x.equals(null)`始终为false。
+
+如果我们想要Manager对象和Employee对象进行对比，修改代码如下：
+
+```java
+public boolean equals(Object obj) {
+    if (obj == this) return true;
+    if (obj == null) return false;
+    if (!obj instanceof Employee) return false;
+    Employee e = (Employee) obj;
+    return e.getSalary() == salary &&
+        Object.equal(e.getHireDay(), hireDay) &&
+        Object.equal(e.getName(), name);
+}
+```
+
+进行这样的调用`e.equals(m)`，这里e为Employee对象，m为Manager对象，如果他们对应字段确实相等，方法会返回true，但是如果我们进行这样的调用`m.equlas(e)`，为了满足对称性，我们也需要它返回true，如果我们在子类重写了这个函数，为了实现这个目标我们就需要很多努力，我们可能需要让任意一个经理与雇员比较，而且不考虑它的奖金，这样是很荒唐的。
+
+较好的一种解决方法就是，我们不可以再在Employee子类中对equals方法进行重写，将它声明为final，这样子类调用方法也不会陷入这样的困扰；或者不使用instanceof，而是使用严格的getClass对对象所属类进行比较。这也就对应我们设计equals方法的两种情形：
+
+- 子类拥有自己的相等性概念，为了满足对称性，我们使用getClass进行比较。
+- 超类来决定所有子类的相等性概念，可以使用instanceof检测，在不同子类对象中也可以使用相等性比较。
+
+下面给出编写一个健壮的equals方法的过程：
+
+1. 显示参数命名为otherObject，稍后类型转化为other。
+2. 检查`otherObject == this`，这一步如果相等可以省去后面很多步比较。
+3. 检查`otherObject == null`，如果为空，将会在后面引发很多异常。
+4. 根据equals的语义，如果子类可以比较则选择instanceof检查类，并且使用final修饰方法；如果子类单独使用比较方法，那么使用getClass检查类型是否相同。
+5. 使用强制类型转换将otherObject转换为other。
+6. 根据需要比较this和other的各个字段，对于对象字段使用Object.equals，对于基本类型字段使用`==`比较。
+7. 对于继承一个一般类重写的equals方法，首先可以使用super.equals方法。
+
+> Tips：对于Java中的某些类，它们可能不具备可比意义，例如StringBuilder，也许有相同的字符创建，但是它们随时的状态可能并不一样，比较它们是无意义的：
+>
+> ```java
+> String s = "Hello world";
+> StringBuilder b = new StringBuilder(s);
+> StringBuilder b1 = new StringBuilder(s);
+> // b.equals(b1) == false
+> ```
+>
+> 重写equals方法时，要注意方法的参数类型一定是Object，如果不为Object，那么这个方法将不会是一个重写方法而是一个重载方法，我们调用时候将也会产生很多不同的影响，所以切记方法类型为Object。
+
+### hashCode方法
+
+hashCode散列码，是Java根据对象导出的一个整数值，Java设计者为不同对象计算散列码设计了不同的算法，我们也可以设计自己的散列码计算算法，但是大多时候这是没有必要的，大多时候使用Java自己的计算方法就可以满足需要。
+
+它存在的意义即为作为对象唯一的一个标识，不相等的对象将会有不同的hashCode，但是相同的对象一定也有相同的hashCode。所以当我们重写了equals方法，那我们务必重写hashCode方法。以之前的Employee类为例，因为我们使用equals方法时比较三个字段，所以用这三个字段的哈希值重新组合进行比较：
+
+```java
+public int hashCode () {
+    return 7 * name.hashCode + 11 * new Double(salary).hashCode + 13 * hireDay.hashCode();
+}
+```
+
+但是如果对象引用如果为null呢？我们可以使用类的静态函数：
+
+```java
+public int hashCode() {
+	return 7 * String.hashCode(name) + 11 * Double.hashCode(salary) + 13 * LocalDate.hashCode(hireDay);
+}
+```
+
+但是这样实在是太麻烦了，Object类中有一个自行组合的方法：
+
+```java
+public int hashCode() {
+	return Object.hash(name, salary, hireDay);
+}
+```
+
+> Tips:对于任何重写了equals方法的类，我们也需要重写hashCode方法保证它们定义的相容性 ，我们只需要对equals方法中比较的字段组合起来再次获得一个hash值即可。
+
+### toString方法
 
