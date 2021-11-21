@@ -2328,5 +2328,267 @@ public static void main(String[] args) {
 */
 ```
 
-## 5.3 泛型数组类型
+> 对于数组类型，我们知道它也是Object类的一个子类，当然也有toString函数，它会输出什么呢?我们实践一下：
+>
+> ```java
+> int [] a = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+> System.out.println(a);
+> // [I@27d6c5e0 这里[i表明是一个整型数组，但是它仍然是难以理解的
+> ```
+>
+> 通过静态方法`Arrays.toString()`将数组转化为一个可以方便我们输出的字符串：
+>
+> ```java
+> int [] a = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+> System.out.println(Arrays.toString(a));
+> // [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+> ```
+>
+> 这样显然更清晰，对于多维数组，我们可以使用`Arrays.toDeepArray()`来进行转化。
 
+## 5.3 泛型数组列表
+
+我们使用一般数组时候总是局限于数组长度，我们总要到运行时候必须要确定数组长度，这可能并不是很方便，Java引入了泛型数组列表来解决这个问题，我们可以在任何时候创建数组列表，然后向其中任意添加元素而不用担心这个列表是否能容纳，它是一种完全动态的解决方案。而且作为一个泛型，我们可以在其中存取任意类型。
+
+### 泛型数组列表的声明
+
+标准声明如下（以ArrayList为例）
+
+```java
+ArrayList<Employee> list = new ArrayList<Employee>();
+```
+
+最后一个括号中我们可以添加数组，表明我们期待的数组列表长度（但是只是期待），如果长度未达到影响并不大，但是如果超过将会造成一定程度性能损失。
+
+当然可以有这两种简写：
+
+```java
+ArrayList<Employee> list = new ArrayList<>();
+var list2 = new ArrayList<Employee>();
+```
+
+> 我们在尖括号中指定数组列表的元素类型，当然作为较老版本的实现，我们可以省略尖括号，它将产生储存类型为Object的数组列表。
+
+数组列表的默认机制是这样的：数组列表维护一个数组存储所有列表中引用的对象，最后这个数组将会用尽，这个类将会创建一个更大的数组然后把小一点的数组中所有内容移入其中。下面是当数组列表大小增加时，这个类维护的数组对象就会更改引用。
+
+![image-20211121160548985](https://gitee.com/chenyuyu118/project-f/raw/master/image/image-20211121160548985.png)
+
+如果我们可以确定数组中元素存储元素的个数，我们就可以调用函数`ensureCapacity(int)`，这个函数将重新以这个方法的参数为维护的数组列表重新确定一个对象数组，这样我们的程序在这个大小范围内添加对象将不会产生很大内存开销，这个函数等价于在创建数组列表时在括号中指定数字。
+
+> 数组列表即使底层接近于数组，但是与数组还是有不同，及时我们为数组列表指定大小为100，但是Java虚拟机并不会为其分配100个元素大小的内存，但是数组则一定会分配100个元素大小的内存。
+
+使用`ensureCapacity(int)`确定数组列表的大小后，数组列表大小仍然可以改变，但是如果超出限制，那么将会在新添加元素时将会花费很多时间移动块。但是如果完全确定一个数组列表的元素不会增长了，就可以使用`trimTosize`，让数组列表紧缩到我们当前的长度。
+
+```java
+var list2 = new ArrayList<Employee>(100);
+list2.add(new Employee());
+list2.add(new Employee()); // --> 1
+list2.trimToSize();
+list2.add(new Employee()); // --> 2
+System.out.println(list2.size());
+// 3
+```
+
+下面是执行到1时候ArrayList内部的情形：elementDate.length为100.
+
+![image-20211121162358816](https://gitee.com/chenyuyu118/project-f/raw/master/image/image-20211121162358816.png)
+
+当我们使用紧缩后，在2中ArrayList内部的情形：elementData.Length为2。
+
+![image-20211121162441534](https://gitee.com/chenyuyu118/project-f/raw/master/image/image-20211121162441534.png)
+
+但是我们仍然还是可以向数组列表中添加元素，但是要清楚这样会造成很大的性能消耗。
+
+### 访问数组列表中的元素
+
+数组列表尽管能自动扩展数组大小，但是取而代之的代价为，Java没有运算符重载，我们不可以向访问数组元素一样使用`[]`运算符来访问数组元素，只有`get`和`set`方法来让我们访问数组元素：
+
+```java
+var list = new ArrayList<Integer>();
+list.add(2);
+list.add(3);
+list.add(5);
+list.add(10);
+System.out.println(list.get(3));
+list.set(3, 100);
+System.out.println(list.get(3));
+/*
+10
+100
+*/
+```
+
+这是一个简单的使用，我们可以使用索引作为方法参数来获得和修改数组列表中对应索引上的元素。
+
+当然我们也可以获得数组长度，通过`size()`而不是`length()`。
+
+我们可以删除元素通过`remove(int index)`或者`remove(Object obj)`，通过指定元素和索引来删除原树；通过`add(Object obj)`添加元素到数组末尾，或者`add(int index, Object obj)`添加到指定索引。这些运用后面会继续了解，他们中的大多都基于接口`List`，我们也将后面了解。
+
+如果我么觉得数组列表`get`和`set`方法太过麻烦，我们完全可以将一个数组列表转化为基本的数组，通过方法`toArray()`:
+
+```java
+var list = new ArrayList<Integer>();
+list.add(2);
+list.add(3);
+list.add(5);
+list.add(10);
+Integer[] a = new Integer[4];
+list.toArray(a);
+System.out.println(Arrays.toString(a));
+
+// [2, 3, 5, 10] 这里一定要使用Integer数组而不是int！
+```
+
+### 类型化和原始数组列表的兼容性
+
+我们总是希望通过类型参数来提高我们代码的安全性，但是实际上最开始实现某些的时候并没有类型参数，我们可能使用形如`ArrayList list`的一个形式参数，我们可以将任意ArrayList对象（不论它的类型参数是String，Int）传递给它，这样是一个很危险的行为，但是Java编译器并不会产生错误，我们只有可能在运行时发现这样的错误，这都因为Java泛型的实现，后面我们会具体了解。
+
+但是如果当我们视图将一个`ArrayList list`对象赋值给`ArrayList<Integer>`时，编译器会发出一个，尽管我们知道它是正确的，我们可以使用注释`@SuppressWarnings("unckecked")`来关闭这样的警告，也可以在编译时候使用`-Xlint:unchecked`来显示这样的警告，类似于之前的`-Xlint:fallthrough`检查没有break的switch语句。
+
+## 5.4 对象包装器和自动装箱
+
+### 对象包装器
+
+int，float…作为基本类型有时候不能满足我们面向对象设计的需求，于是Java有一些特别的包装类Integer，Float，Long，Double，Short，Byte，Character和Boolean（前六个类派生自Number类），它们保存着对应基本类型的值，而且一旦一个对象被创建它们本身将会不可修改其中的值，这些包装类也是final类，不可以再进行派生。
+
+我们在使用泛型数组时就只能使用包装类`ArrayList<Integer>`而不能使用`ArrayList<int>`，因为泛型的实现依赖于对象Object，int作为基本类型不能与Object类兼容。
+
+> 我们会使用ArrayList<Integer>当且仅当使用较小集合而且为了操作更方便比操作效率更高时才如此，不让int[]的效率远比它高。
+
+### 自动装箱和拆箱
+
+对于一个需要Integer类对象参数的地方，我们可以直接使用int类型字面值，Java编译器会执行自动装箱，把基本类型包装为Integer类：
+
+```java
+ArrayList <Integer> list = new ArrayList<>();
+list.add(3); // 这里会执行自动装箱
+```
+
+当然也有自动拆箱，我们对一个Integer对象执行某些运算符操作将自动将其转化为int：
+
+```java
+Integer i = 3;
+i++; // 自动拆箱
+System.out.println(i);
+// 4
+```
+
+上面i++的将会被编译器替换为这样的一个过程：i拆箱，计算i++，将i++结果再次装箱，并赋值给i。
+
+但是拆箱只在我们需要一个基本类型时候才会发生，思考这样的情况：
+
+```java
+Integer i = 3;
+Integer i1 = 3;
+boolean a = i == 3;
+boolean b = i == i1;
+System.out.println("a = " + a);
+System.out.println("b = " + b);
+
+/*
+a = true
+b = true
+*/
+```
+
+当我们使用3和Integer比较时会自动进行拆箱，但是和另一个Integer对象呢？因为Java中`==`用于对象比较时只会比较对象是否为同一个部分，也许会进行拆箱操作，我们不得而知，所以在比较Integer对象时，尽量使用equals方法。
+
+> 拆箱和装箱都是编译器的工作，它会在编译时为我们的代码中间插入必要的方法调用，然后虚拟机来执行，不必担心。
+
+### 包装器中方法
+
+包装器不只是为基本类型提供了类的抽象，同时一些有用的静态方法也被包含在这些包装器中：
+
+`Integer.ParseInt(String)`,`Double.ParseDouble(String)`…每个包装类都有一个`ParseXXX(String)`函数可以从字符串中解析对应类型，得到一个对应的对象。还有诸如`toString`,`valueOf`,`min`,`max`,`sum`…众多与基本类型有关的API函数我们都可以在其中找到。
+
+> 我们知道Java方法中传递参数的方式是按值传递，我们没法在一个方法中修改参数本身的值（对于基本类型来说是它的值，对于对象引用变量来说是它引用的对象），所以我们想通过方法修改包装类对象的值是不可行的，如果我们想要实现这样的功能，可以使用IntHolder,DoubleHolder类。
+
+## 5.5 参数数量可变的方法
+
+我们之前使用`System.out.printf(String format, Object ... args)`方法，其中在格式字符串后，我们可以使用任意个对象作为对应格式字符串替换部分，这就是一个参数数量可变的方法。它的实现是这样的，例如：
+
+```java
+int n = 10;
+System.out.printf("%d %s", n, "widget");
+```
+
+这里Java将n和“widget”包装成一个Object[]，其中n将被自动装箱，然后调用后方法将会进行拆箱然后在对应位置使用对应参数的toString方法，所以我们可以通过这样来调用这个方法：
+
+```java
+int n = 10;
+System.out.printf("%d %s", new Object[] { n, "widget" });
+```
+
+显式的使用对象数组来作为可变参数的替代就将省略编译器的装箱步骤，我们也可以自己编制这样的方法：
+
+```java
+public static int max (int ... obj) {
+    int max = Integer.MIN_VALUE;
+    for (var i : obj) {
+        if (i > max)
+            max = i;
+    }
+    return max;
+}
+
+public static void main(String[] args) {
+    System.out.println(max(1, 2, 3, 4112, 12312, 1231, 765, 123));
+}
+
+// 12312
+```
+
+我们可以简单的使用foreach格式来遍历这样的形参，然后来进行处理。任意可变参数都等价于一个在最后一个参数数组，但是切记这样的参数只能放在参数列表的最后一个，称为`Varargs`参数。
+
+## 5.6 枚举类
+
+我们之前已经定义过一个简单的枚举类型：
+
+```java
+public enum Size { SMALL, MEDIUM, LARGE, EXTRA_LARGE }
+```
+
+这样的简明定义将产生一个枚举类，它有四个实例，不可以构造除了这些实例外的其他对象，因此比较枚举常量时候不需要使用equals方法（因为每个枚举变量只能对应一个固定的枚举常量，它的内存位置一定是固定的），用等号`==`比较也可行。
+
+在需要的情况下，我们可以为枚举类型（枚举类）加字段、构造器和方法。但是作为枚举类，构造器只能在构造枚举枚举常量使用。下面是一个示例：
+
+```java
+public enum Size {
+    SMALL("S"), MEDIUM("M"), LARGE("L"), EXTRA_LARGE("XL");
+    
+    private String abbreviation;
+    private Size(String abbreviation) { this.abbreviation = abbreviation; }
+    public String getAbbreviation () { return abbreviation; }
+}
+```
+
+在这个类中字段为abbreviation，我们在枚举中每个实例已经完成了对这个字段的赋值，我们可以通过访问器和更改器来访问不同实例中的字段：
+
+```java
+Size s = Size.LARGE;
+System.out.println(s.getAbbreviation());
+// L
+```
+
+所有枚举类都是Enum<>类的子类，它的构造器方法只能为private，它也有一些默认的方法，例如`toString`,对于`Size.LARGE.toString()`即为`LARGE`，这很方便我们将枚举类变量输出。
+
+我们也可以通过静态方法`valueOf`来获得某个枚举类的对象
+
+```java
+Size s = Enum.valueOf(Size.class, "SMALL");
+// s == Size.SMALL
+```
+
+还有`ordinal`方法，它会返回枚举常量在枚举类中声明的位置，就如上面的类：
+
+```java
+System.out.println(Size.LARGE.ordinal());
+System.out.println(Size.SMALL.ordinal());
+// 2 0
+```
+
+它们分别为第三个和第一个声明，输出的数字正好与之对应。
+
+> Enum类实际上是一个泛型类，我们使用Size枚举类，实际上它是类`Enum<Size>`的扩展。后面我们会详细介绍泛型类。
+
+## 5.7 反射
