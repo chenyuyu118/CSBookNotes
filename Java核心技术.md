@@ -2592,3 +2592,172 @@ System.out.println(Size.SMALL.ordinal());
 > Enum类实际上是一个泛型类，我们使用Size枚举类，实际上它是类`Enum<Size>`的扩展。后面我们会详细介绍泛型类。
 
 ## 5.7 反射
+
+反射机制是Java提供的一个丰富而精巧的工具集，它可以用来编写可以动态操作Java代码的程序，我们把`能动态分析类能力的程序`称为`反射`，利用反射的机制，我们可以：
+
+- 在运行时分析类的能力
+- 在运行时检查对象，可以编写一个适用于所有类的toString方法
+- 实现泛型数组操作代码
+- 利用Methord对象，实现方法调用（类似于C++函数指针)
+
+### Class类
+
+Java虚拟机在运行时总是维护着所有对象的类型标识，它会跟踪每个对象所属的类，虚拟机根据这些信息来选择需要执行的正确的方法。
+
+我们为了使用这些信息，就可以使用Class类，它保存了这些信息，我们通过一个类对象的`.getClass()`方法可以获得它对应的Class类对象。
+
+Class类中有很多常见的方法，首先`getName()`，这个方法会返回类名，如果类在某一个包内，则也会返回包名：
+
+```java
+String s = "111";
+Class c1 = s.getClass();
+System.out.println(s.getClass().getName());
+// java.lang.String
+```
+
+通过`forName(String)`方法，通过一个类名可以获得它对应的Class类：
+
+```java
+String s = "111";
+Class c1 = s.getClass();
+Class c2 = Class.forName("java.lang.String");
+if (c1 == c2)
+    System.out.println("equal");
+else
+    System.out.println("not equal");
+// equal
+```
+
+我们首先通过对象引入了String类的Class对象，然后通过`forName`方法引入了同一个对象(使用这个方法要注意在方法参数列表后加入throw ClassNotFoundException用于声明异常)，因为类信息在java虚拟机中是唯一的，所以它们使用`==`比较时自然也相等。利用这个特点，我们在之前equals方法的设计中就可以使用这种机制：
+
+```java
+if (o.getClass() != getClass()) return false;
+```
+
+这样确保两个对象属于同一个类。
+
+> Tips：forName方法有一个妙用，在大型的引用程序中，虚拟机启动时从Main入口进入，然后需要加载所有依赖的类，然后以来的类需要加载它们所依赖的类，这是一个耗时很久的过程，我们可以先载入一个缓冲页面，然后显式的使用forName加载所有需要的类。
+
+当然我们也可以通过类名来更简单获得一个Class类对象，例如`String.class`,`LocalDate.class`…但是注意一个Class类的对象指示的可能不是一个存在的类，例如`int.class`是一个class类的对象，但是int并不是一个类。
+
+还有一个常用方法，我们可以从一个类的Class对象中获得它的构造器来创建该类的一个实例，使用`getConstructor`方法获得一个`Constructor`类实例，然后该类可以使用无参构造器方法`newInstance`获得一个实例：
+
+```java
+public static void main(String[] args) throws ClassNotFoundException,
+        NoSuchMethodException, InvocationTargetException,
+        InstantiationException, IllegalAccessException {
+    Class c1 = Employee.class;
+    Employee e = (Employee) c1.getConstructor().newInstance();
+    System.out.println(e);
+}
+// Charpter5.Employee[name=,salary=0.0,hireDay=2021-11-22]
+```
+
+注意这里需要声明很多的异常，不然程序将会无法运行，我们将在后面描述为什么要声明异常，和要声明什么样的异常。
+
+### 声明异常入门
+
+当程序中出现了难以预料的错误，程序一般都会自动终止，在Java中我们可以选择另一种情形那就是抛出异常，它的好处就是对于一般的不作为让程序终止，我们可以通过编写异常处理器（handler）让我们的程序遇到错误后可以自行纠错并继续良好的运行。
+
+可能有这样一些异常：数组越界，除以0，空指针引用…。我们把异常分为两种类型：`检查型异常`和`非检查型异常`。这个检查相对于编译器而言，前者是编译器会检查你是否知道这个异常并且为处理这个异常做好了准备；后者编译器不会检查，是否会出现这样的错误完全取决于你是否够细致，来编写不会发生这样错误的代码，因为编译器不期望你为其编写异常处理器。
+
+对于检查型异常它们的发生很多可能不可避免，所以我们需要对它们的发生有所预防，例如类不存在；而非检查型异常他们大都可以避免通过我们编写适合的程序，例如null引用，我们大可以在调用方法前查看对象引用是否为空。我们将在后面继续详细了解异常处理，现在我们需要知道对于任意可能产生检查型异常的方法，我们都需要在方法的参数部分后面声明，形如：`throws 异常名`，来让编译器明确我们已经了解了这个方法会处理异常，并且做好了准备，对于一个方法中如果我们调用了可能产生检查型异常的方法，那么我们需要在这个方法头部声明这个方法可能会产生的检查型异常，否者编译器将会报错。
+
+### 资源
+
+程序可能依赖一些音乐，图片，文字和视频数据文件，这些文件称为资源，为了方便管理资源，Class类提供了很多有用的方法来查找资源文件。步骤如下：
+
+- 获得资源所在类的Class对象,`类名.class`。
+- 对于不同类型资源调用不同方法：例如图片类使用`getResource(String filename)`获得资源位置URL，对于文字类使用`getResourceAsStream(String filename)`获得对应文件流。
+
+对于我们的资源存在resource包中，我们在Charpter5包中访问这些资源：
+
+![image-20211122105609902](https://gitee.com/chenyuyu118/project-f/raw/master/image/image-20211122105609902.png)
+
+```java
+public static void main(String[] args) throws IOException {
+    Class c1 = ResourceTest.class;
+    var stream = c1.getResourceAsStream("1.txt");
+    var about = new String(stream.readAllBytes(), "UTF-8");
+    System.out.println(about);
+
+    var url = c1.getResource("1.jpeg");
+    System.out.println(url);
+}
+
+/*
+This is a test.
+file:/E:/CoreJavaVolume/out/production/CoreJavaVolume/resource/1.jpeg
+*/
+```
+
+这样我们就做到了通过通过类文件来索引资源文件，之后我们可以通过自己的方式来解析资源文件。
+
+我们还可以使用资源文件来帮助我们实现国际化，这些都是后话了。
+
+### 利用反射分析类的能力
+
+除了Class类可以描述所有类的信息外，反射机制中还有Method、Field和Constructor三个类分别描述类的方法，字段和构造器。我们来系统浏览下它们提供的方法：
+
+#### java.lang.Class类
+
+> `Field[] getFileds()`
+>
+> `Filed[] getDeclaredFileds()`
+>
+> `Method[] getMethods()`
+>
+> `Method[] getDeclaredMethods()`
+>
+> `Constructor[] getConstructor()`
+>
+> `Constructor[] getDeclaredConstructor()`
+>
+> `String getPackageName()`
+
+其中getXXX为获得对应类对象的数组，例如为Method，则为获得类所有公共方法的数组，而且包含从子类继承的公共方法；对于getDeclaredXXX为获得对应类或者接口的对应类对象。以Method为例，获得类或者接口的所有方法，不包含继承来的方法。最后一个方法获得对应的包名，如果类型为基本类型则返回`java.lang`。
+
+#### java.lang.reflect.Filed\Method\Constructor类
+
+> `Class getDeclarignClass()`：获得他们对应的类。
+>
+> `Class[] getExceptionTypes() `：Constructor类和Method类专有，返回异常类的Class对象。
+>
+> `int getModifiers()`：获得一个整数，描述构造器或者方法或者字段的访问修饰符，可以在Modifier类中分析这个字符。
+>
+> `String getName()`：获得字段，方法或者构造器的名称。
+>
+> `Class[] getParameterTyped()`：Constructor类和Method类专有，返回方法的参数对应的Class对象数组。
+>
+> `Class getReturnType()`：返回一个用于表示返回类型的Class对象。
+
+#### java.lang.Modifier类
+
+> `static String toString(int modifiers)`
+>
+> `static boolean isAbstarct(int modifiers)`
+>
+> `static boolean isFinal(int modifiers)`
+>
+> `static boolean isInterface(int modifiers)`
+>
+> `static boolean isNative(int modifiers)`
+>
+> `static boolean isPrivate(int modifiers)`
+>
+> `static boolean isProtected(int modifiers)`
+>
+> `static boolean isPublic(int modifiers)`
+>
+> `static boolean isStatic(int modifiers)`
+>
+> `static boolean isStrict(int modifiers)`
+>
+> `static boolean isSynchronized(int modifiers)`
+>
+> `static boolean isVolatile(int modifiers)`
+
+第一个方法可以根据modifier标志来获得一个方法或者字段或者构造器的所有限定字符，后面的则是判断对应为是否置位。
+
+下面的一个类是分析任意类的声明情况的程序：
+
