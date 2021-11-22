@@ -2761,3 +2761,102 @@ file:/E:/CoreJavaVolume/out/production/CoreJavaVolume/resource/1.jpeg
 
 下面的一个类是分析任意类的声明情况的程序：
 
+```java
+package Charpter5;
+
+import java.lang.reflect.Constructor;
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
+
+public class ReflectionTest {
+    public static void main(String[] args) {
+        Class c1 = Object.class;
+        printClass(c1);
+    }
+
+    public static void printClass(Class cl) {
+        int modifier = cl.getModifiers();
+        System.out.println(Modifier.toString(modifier) + " class " + cl.getName() + " {");
+        printFiled(cl);
+        printConstructors(cl);
+        printMethods(cl);
+        System.out.print("};");
+    }
+
+    public static void printConstructors(Class cl) {
+        Constructor[] constructors = cl.getDeclaredConstructors();
+        for (var c : constructors) {
+            String name = c.getName();
+            System.out.print("    ");
+            String modifiers = Modifier.toString(c.getModifiers());
+            if (modifiers.length() > 0)
+                System.out.print(modifiers + " ");
+            System.out.print(name + "(");
+
+            Class[] paramTypes = c.getParameterTypes();
+            for (int j = 0; j < paramTypes.length; ++j) {
+                if (j > 0)
+                    System.out.print(", ");
+                System.out.print(paramTypes[j].getName());
+            }
+            System.out.println(");");
+        }
+    }
+
+    public static void printMethods(Class cl) {
+        Method[] methods = cl.getDeclaredMethods();
+        for (var m: methods) {
+            int modifier = m.getModifiers();
+            System.out.print("    ");
+            System.out.print(Modifier.toString(modifier));
+            System.out.print(" " + m.getReturnType().getName());
+            System.out.print(" " + m.getName() + "(");
+            Class[] param = m.getParameterTypes();
+            for (int i = 0; i < param.length; ++i) {
+                if (i == param.length-1)
+                    System.out.print(param[i].getName());
+                else
+                    System.out.print(param[i].getName() + ", ");
+            }
+            System.out.println(");");
+        }
+    }
+
+    public static void printFiled(Class cl) {
+        Field [] fields = cl.getDeclaredFields();
+        for (var f : fields) {
+            System.out.print("    ");
+            int modifier = f.getModifiers();
+            System.out.print(Modifier.toString(modifier));
+            System.out.print(" " + f.getType().getName());
+            System.out.println(" " + f.getName() + ";");
+        }
+    }
+}
+```
+
+![image-20211122230350502](https://gitee.com/chenyuyu118/project-f/raw/master/image/image-20211122230350502.png)
+
+对于Object类对象，我们可以得到它所有声明的字段、构造器和方法。
+
+### 使用反射在运行时分析类
+
+我们在程序运行时，通过反射机制可以查看在编译时未知的对象字段的值，这些都要通过Field类的get方法，它的原型是这样：`Object get(Object obj);`它由一个Field对象调用，返回对应obj中该Field字段的值，我们也可以通过Class类的方法`getField(Stirng fieldName)`来获得我们需要的Field对象。看一个简单的通过该机制访问的过程：
+
+```java
+var harry = new Employee("Lily", 20000, 2020, 10, 1);
+Field f = harry.getClass().getDeclaredField("name");
+f.setAccessible(true);
+String obj =  (String) f.get(harry);
+System.out.println(f.getName() + "=" + obj);
+
+// name=Lily
+```
+
+其中name作为私有字段，我们一般来说是不可访问它的，但是我们可以在获得对应字段后使用`setAccessible(boolean)`方法将其设置为可以访问，然后使用get方法要记得返回值类型为Object，需要类型转换，而且这些方法可能会抛出很多异常：`NoSuchFieldException`,`IllegalAccessException`都需要我们处理。
+
+尝试对于非公共字段的访问可能会被模块系统或者安全管理器拒绝，后面我们将会了解它们。
+
+ 了解了Field方法的机制，我们来编写一个可以打印任意对象信息的方法toString：
+
