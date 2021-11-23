@@ -2860,3 +2860,212 @@ System.out.println(f.getName() + "=" + obj);
 
  了解了Field方法的机制，我们来编写一个可以打印任意对象信息的方法toString：
 
+```java
+class RunningAnalyzer {
+    private ArrayList<Object> visited = new ArrayList<>();
+    public String toString(Object obj) throws IllegalAccessException {
+        if (obj == null) return "null"; // 为空，防止Null引用
+        if (visited.contains(obj)) return "...."; // 如果这个对象访问过，防止递归访问
+        visited.add(obj);
+        Class cl = obj.getClass();
+        if (cl == String.class) return (String)obj; // 是一个String对象，直接返回
+        StringBuilder builder = new StringBuilder();
+        if (cl.isArray()) {
+            // 如果是一个数组，递归访问
+            String r = cl.getComponentType().getName();
+            builder.append(r).append("[] {");
+            int length = Array.getLength(obj);
+            for (int i = 0; i < length; ++i) {
+                if (i != 0)
+                    builder.append(", ");
+                var o = Array.get(obj, i);
+                builder.append(toString(o)).append("\n");
+            }
+            builder.append("}");
+            return builder.toString();
+        }
+        String objType = cl.getName();
+        builder.append(objType);
+        do {
+            builder.append("[");
+            Field[] fields = cl.getDeclaredFields();
+            AccessibleObject.setAccessible(fields, true);
+            for (var f : fields) {
+                if (!Modifier.isStatic(f.getModifiers())) {
+                    if (!builder.toString().endsWith("[")) builder.append(", ");
+                    builder.append(f.getName()).append("=");
+                    Class t = f.getType();
+                    Object val = f.get(obj);
+                    if (t.isPrimitive())
+                        builder.append(val);
+                    else
+                        builder.append(toString(val));
+                }
+            }
+            builder.append("]");
+            cl = cl.getSuperclass();
+        } while (cl != null);
+        return builder.toString();
+    }
+}
+```
+
+我们试着用这个类来查看一个类对象：
+
+```java
+var harry = new Employee("Lily", 20000, 2020, 10, 1);
+var harry1 = new Employee("hanhan", 2000, 2014, 10, 10);
+var harry2 = new Employee("berber", 20001, 2023, 7, 9);
+ArrayList<Employee> list = new ArrayList<>();
+list.add(harry);
+list.add(harry1);
+list.add(harry2);
+RunningAnalyzer analyzer = new RunningAnalyzer();
+System.out.println(analyzer.toString(list));
+```
+
+![image-20211123230148410](https://gitee.com/chenyuyu118/project-f/raw/master/image/image-20211123230148410.png)
+
+具体实现中依赖了Filed的get方法，和反射包中的`AccessibleObject.setAccessible`方法迅速将一个Filed数组中的所有元素都设置为可以访问（当然我们可以在遍历时候，对每一个元素进行`f.setAccessible(true)`) 。
+
+当然还有值得注意的细节，例如反射包中的`Array`类有的getLength方法，和get方法能帮助我们获得数组对象中元素；`Class`类有supressClass方法获得父类…具体细节写程序来体会吧。
+
+### 使用反射编写泛型数组代码
+
+我们在Arrays类中很容易使用方法`copyOf`来拷贝一个任意类型的数组：
+
+```java
+var harry = new Employee("Lily", 20000, 2020, 10, 1);
+var harry1 = new Employee("hanhan", 2000, 2014, 10, 10);
+var harry2 = new Employee("berber", 20001, 2023, 7, 9);
+Employee[] fromList = new Employee[3];
+fromList[0] = harry;
+fromList[1] = harry1;
+fromList[2] = harry2;
+int size = 2 * fromList.length;
+var newList = Arrays.copyOf(fromList, size);
+System.out.println(Arrays.toString(fromList));
+System.out.println(Arrays.toString(newList));
+// 两行内容会输出相同的结果
+```
+
+我们可以很容易的拷贝一个数组，我们当然也可以使用泛型来实现这样的功能，那我们来实验一下如何完成这个过程吧：
+
+```java
+public static Object[] badCopyOf(Object[] fromArray, int newLength) {
+    var newArray = new Object[newLength];
+    System.arraycopy(fromArray, 0, newArray, 0, Math.min(newLength, fromArray.length));
+    return newArray;
+}
+```
+
+这段代码看起来没什么问题，我们创建一个新的数组，然后使用系统的拷贝将其拷贝到我们 新建的目的数组下，但是他并不能发挥作用，除非fromArray参数本身就是Object类对象，而不是它的任意子类。因为我们新建的Object类数组确实只能容纳Object对象，对于fromArray数组，它的内部元素类型可能是String，Double，Integer…任意类都可以
+
+对于这个问题我们可以轻松使用反射来解决：
+
+```java
+public static Object[] goodCopyOf(Object[] fromArray, int newLength) {
+    Class cl = fromArray.getClass().getComponentType();
+    int length = Array.getLength(fromArray);
+    Object newArray = Array.newInstance(cl, newLength);
+    System.arraycopy(fromArray, 0, newArray, 0, Math.min(newLength, length));
+    return (Object[]) newArray;
+}
+```
+
+我们使用反射包中的Array类静态方法创建了内部类型为fromArray内部类型相同，指定长度的数组对象，最后使用强制类型转换获得我们需要的类型。
+
+### 调用任意方法和构造器
+
+我们知道Java中没有指针，更不用说是方法指针，我们想要使用一个方法，都需要依托于一个对象，或者是一个类，不能像C语言一样调用随意的方法。但是Java使用反射给予了我们一定的支持，在Method类中有这样一个方法；
+
+`public Object invoke(Object impllicitParameter, Object[] explicitParameter)`
+
+它调用一个方法对象对应的方法，第一个参数为隐式参数（类对象本身），第二个参数为显示参数的数组。
+
+调用任意构造器与之类似，Constructor类中有`newInstance()`方法，通过传递构造器所需的参数返回一个由构造器构造的对应对象。Constructor类对象的获取可以通过Class对象的getConstructor，在参数中指明需要的构造器需要的参数类型列表：
+
+```java
+getConstructor(Class<?>... parameterTypes)
+```
+
+下面是调用任意方法和构造器的实例：
+
+```java
+public class MethodTableTest {
+    public static void main(String[] args) throws NoSuchMethodException, InvocationTargetException, IllegalAccessException {
+        Method m = MethodTableTest.class.getDeclaredMethod("square", double.class);
+        Method m1 = Math.class.getDeclaredMethod("sqrt", double.class);
+        printTable(1, 11, 10, m);
+        printTable(1, 11, 10, m1);
+    }
+
+    /**
+     * Return x^2
+     * @param x a double number
+     * @return x x^2
+     * */
+    public static double square(double x) {
+        return x * x;
+    }
+
+    /**
+     * 打印一个方法处理数字的表格，使用invoke调用这个方法
+     * @param from 起始数字
+     * @param to 最后处理的数字
+     * @param n 打印表格的行数
+     * @param m 调用的方法
+     * */
+    public static void printTable (double from, double to, int n, Method m) throws InvocationTargetException, IllegalAccessException {
+        System.out.println(m);
+
+        double path = (to - from) / n;
+
+        for (double x = from; x <= to; x += path) {
+            double result = (Double) m.invoke(null, x);
+            System.out.printf("%10.4f| %10.4f%n", x, result);
+        }
+    }
+}
+```
+
+![image-20211123235958830](https://gitee.com/chenyuyu118/project-f/raw/master/image/image-20211123235958830.png)
+
+记住，获取任意构造器或者是方法对象，getConstructor或者getMethod需要的参数一定要包含我们需要方法所需参数列表的所有Class对象。
+
+> Tips：Method对象对于我们来说并不是一个值得选择的选项，除非绝对必要，不然尽量不要使用Method来进行方法调用，我们可以使用更好的接口特性或者lambda表达式在任意使用Method方法调用的地方进行替换。
+>
+> 一定不要使用回调函数的Method对象，可以使用回调的接口，这样的代码会有更快的执行速度，而且更容易维护。
+
+## 5.8 继承的设计技巧
+
+1. 将公共字段放在超类中。
+
+2. 不要使用受保护的字段。
+
+   不要使用它因为它的安全性真的不尽如人意，因为我们在包外可以继承这个类，然后可以任意访问它的受保护部分，也可以在一个包类内访问受保护字段就像访问，这样真的是很危险的，它起不到任何保护作用。
+
+3. 使用继承实现is-a关系。
+
+4. 除非所有继承方法都有含义，否则永远不要使用继承。
+
+   如果一个继承方法在他的子类中没有任何意义，请不要继承它，不然这样的方法可能造成未知的隐患。
+
+5. 在覆盖原方法之前，不要改变原有的行为。
+
+   子类覆盖方法是，不要偏离最初的设计想法。
+
+6. 使用多态，不要使用类型信息。
+
+   ```java
+   if (x instanceof Type1)
+   	...
+   else if (x instance of Type2)
+   	...
+   ```
+
+   对于这样的代码，如果条件中执行的内容具有相同的语义，我们不妨使用多态性来解决，用一个公共的类作为Type1和Type2的父类，然后让这个父类引用对象x，调用我们需要的方法。
+
+7. 不要滥用反射。
+
+   反射可以让我们在运行时查看对象的各种信息，编写具有很高通用性的代码，但是使用很多反射我们的编译器将不能为我们提供很多的有用的提示，我们可能很难找到问题然后解决问题。
