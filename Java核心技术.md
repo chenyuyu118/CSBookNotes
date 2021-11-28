@@ -3407,4 +3407,70 @@ class LengthComparator implements Comparator<String> {
 
 我们已经知道，Java中的对象变量都只是引用，赋值符号`=`也只是让两个变量指向同一块内存空间，并不会复制这个对象一次，这称为`浅拷贝`。
 
-但是很多时候我们需要保留下一个可变对象某事某刻的状态，然后当我们造成了某种错误后可以回到这个保留的状态，这时候我们需要的就是`深拷贝`，实现深拷贝可以使用Java中的clone方法。
+但是很多时候我们需要保留下一个可变对象某事某刻的状态，然后当我们造成了某种错误后可以回到这个保留的状态，这时候我们需要的就是`深拷贝`，深拷贝可以使用Java中的clone方法。
+
+我们先了解clone方法，它是被定义在Java类中的一个受保护的方法，我们只能在它的子类和包中使用它，但是注意它可能会抛出`CloneNotSupportedException`，我们需要在使用它的方法中声明这个异常。对于只含有基本类型作为字段的类是完全有效的，但是如果类的字段中含有对象引用的部分那么深克隆会失效，克隆出来的对象的该字段将和原字段继续引用同一部分。
+
+```java
+Employee e = new Employee("fully", 450000, 2002, 1, 1);
+Employee e1 = (Employee) e.clone();
+if (e.getName() == e1.getName())
+    System.out.println("浅拷贝");
+else
+    System.out.println("深拷贝");
+// 浅拷贝
+```
+
+上面的程序执行需要声明实现接口`Cloneable`和在方法中声明抛出异常`CloneNotSupportedException`通过Employee对象的name字段指向同一块内存空间我们知道这样的拷贝是一个浅拷贝，我们现在来尝试改进它来实现深拷贝。
+
+首先理解`Cloneable`接口，它是我们在使用`clone`方法时必须声明实现的，但是我们完全可以不用再类中进行任何实现，为什么呢？因为Cloneable是一个标记接口（也称为记号接口），它只起到标记作用，使用了它之后我们只可以使用`intanceof`来检查类是否实现了clone方法，但是对于需要使用克隆的类我们务必声明实现它，如果不进行这样的声明将会抛出检查型异常。
+
+其次来理解protected这个修饰符赋予它独特的地位，因为clone方法在Object类中定义，所有类又是它的子类，所以我们在类中可以任意拷贝自己类的对象，但是如果在类外就不可以了，我们可以利用继承的特性重写clone方法，提高它的可见性为pubic。这样我们在任意类都可以访问这个类的克隆方法：
+
+```java
+public Employee clone() throws CloneNotSupportedException {
+    return (Employee) super.clone();
+}
+```
+
+> 注意这里我们还使用了协变返回类型，Employee类为Object类的子类，我们可以在重写方法让它返回我们需要的这个类型。
+
+但是上面的实现仍然是一个浅拷贝，现在我们最后再思考我们究竟需要什么样的深拷贝，我们为什么需要深拷贝？
+
+- 默认的clone浅拷贝方法没法满足我们的需求；
+- 基于浅拷贝的方法生成对象中包含可变对象可能存在危险；
+
+确定我们有着这样一些的需求后，我们写出了这样一个例子：
+
+```java
+public Employee clone() throws CloneNotSupportedException {
+    Employee cloned = (Employee) super.clone();
+    cloned.hireDay = (Date)hireDay.clone();
+    // cloned.name = new String(name); 这一项是不需要的因为String对象是不可变的
+    return cloned;
+}
+```
+
+因为我们所创建的类都基于基本类型和Java类库，我们大多时候都需要查看类库是否实现了类的clone方法来帮助我们进行深拷贝，对于可变对象Java大都对其有所实现，我们可以使用。但是对于不可变对象这样的拷贝是不值得的，例如String类就没有实现这样的方法，我们clone一个时得到一个String对象的引用，当被引用的原对象的string对象发生改变了，只是以为着它的引用部分改变，被拷贝的部分不需要担心：
+
+```java
+Employee e = new Employee("fully", 450000, 2002, 1, 1);
+Employee e1 = e.clone();
+e.setName("hhhhh");
+System.out.println("e.name = " + e.getName());
+System.out.println("e1.name = " + e1.getName());
+
+/*
+e.name = hhhhh
+e1.name = fully
+*/
+```
+
+这样我们就近似实现了深拷贝，浅拷贝的部分并不会对我们的程序产生影响，如果我们仍然坚持对String进行深拷贝，可以取消掉我们的注释部分，针对其他没有clone方法的类，我们也可以通过新建同状态的对象来实现深拷贝。
+
+对于Java设计准则，对于clone的实现并没有确切的标准，但是我们尽量减少它的使用，除非我们很能明晰我们需要什么样的克隆。
+
+> 对于任意数组类型都有公共的clone方法，让我们对与数组对象进行一个深拷贝，但是切记这个方法仅对基本类型深拷贝有效，因为对象数组本质上是一个Object类，它对于一些可变对象没法进行深拷贝。
+
+## 6.2 lambda表达式
+
