@@ -1,4 +1,4 @@
-Java核心技术卷一 基础知识
+# Java核心技术卷一 基础知识
 
 # 第3章 Java的基本程序设计结构
 
@@ -3069,3 +3069,342 @@ public class MethodTableTest {
 7. 不要滥用反射。
 
    反射可以让我们在运行时查看对象的各种信息，编写具有很高通用性的代码，但是使用很多反射我们的编译器将不能为我们提供很多的有用的提示，我们可能很难找到问题然后解决问题。
+
+# 第六章 接口、lambda表达式与内部类
+
+接口技术，描述类应该做什么，一个类可以实现多个接口，不论他们用什么方式，而且某些方法要求类实现特定的接口。
+
+lambda表达式是一个代码块，它可以被保存在一个变量中，然后在之后的某个时间执行，使用它可以用一种精巧而简洁的方式使用回调和可变行为的代码。
+
+内部类在类的内部定义，可以访问类的私有字段，在设计具有相互协作关系的类集合中十分有效。
+
+最后即是代理（proxy），是一种实现任意接口的对象，是一个专业的系统级构造工具。
+
+## 6.1接口
+
+### 基础概念
+
+接口，是一个你希望符合这个接口的类的一组需求（方法）。比如很多电子产品有充电接口，手机就有这样一个接口，它需要你的手机可以通过充电线充电….。对于Java，Array类中有静态方法sort，可以对于对象数组进行排序，但是前提是这个对象实现了`Comparable`接口。对于任意一个接口，它用下面这样的形式定义（以Comparable接口为例）：
+
+```java
+interface Comparable {
+	int compareTo(Object other);	
+}
+```
+
+> 也许实际上Comparable并不是这样声明的，因为Java引入了泛型的缘故，它实际上是这样的：
+>
+> ```java
+> public interface Comparable<T> {
+>     public int compareTo(T o);
+> }
+> ```
+>
+> 然后在实现CompareTo函数时，我们就可以指定接受的参数的类型，这可以避免我们使用繁多的类型转换。
+
+接口具有这样一些特征：
+
+- 接口中所有方法都为public，在接口中声明任意函数也不需要加上public修饰符，因为它本身就是public的。
+- 接口中不能含有实例字段，提供实例字段和方法的实现这些工作往往是在实现接口的类中完成的。（但是，Java8后，接口中可以为方法指定默认实现）
+- 接口中可以包含多个方法。
+
+我们要实现接口，需要两步：第一步，类声明为实现接口；第二步，实现接口中所有方法。我们来为之前的Employee类实现一个Comparable接口：
+
+```java
+public class Employee implements Comparable{
+    public int compareTo(Object o) {
+        Employee other = (Employee) o;
+        return Double.compare(this.salary, other.salary);
+    }
+}
+```
+
+> 这里有些值得我们注意的，我们使用`implements`关键字表明我们实现接口，然后覆写compartTo方法，使用比较两个Employee的salary字段的策略。
+>
+> 我们在这里对于没有使用public修饰符的接口方法需要重新加上public修饰符，因为当我们在类中不对一个方法指定访问权限时，它将为包可见性，这样将会与它在接口中定义的公共访问权限冲突，因为我们正在试图使得它有一个更严格的访问权限。
+
+当了解了Comparable接口为一个泛型接口后，我们可以做得更好：
+
+```java
+public int compareTo(Employee employee){
+    return Double.compare(salary, employee.salary);
+}
+```
+
+我们这样就不需要使用累赘的强制类型转换符了。
+
+> 在考虑Comparable接口的使用时，我们还需要考虑这个接口中方法的特殊意义，返回一个对象，前一个数大于第二个数时将将返回大于一的数字，反之返回小于一的数字，然后相等时候返回0。
+>
+> 所以我们在设计compareTo函数的时候也要注意这一点，如果只是简单的比较int类型，也许我们可以使用a-b来比较，而且它可以返回我们需要的情况（但是注意数值不能溢出，这时候还是需要Integer.compareTo）。但是对于double类型就不能如此了，因为对于两个可能只差一点点的浮点型但是不相等时直接相减就会产生0，一定要使用Double.compareTo静态方法。
+>
+> ```java
+> System.out.println(1.40000001f - 1.400000001f);
+> // 这个结果就为0
+> ```
+>
+> CompareTo方法也应该与equals方法相兼容，当相等时候equals方法返回1，CompareTo方法返回0。Java中大多数类实现都是如此，但是对于BigDecimal却不能做到，看下面的例子：
+>
+> ```java
+> BigDecimal x = new BigDecimal("1.00");
+> BigDecimal y = new BigDecimal("1.00000");
+> System.out.println(x.equals(y) ? 1 : 0);
+> System.out.println(x.compareTo(y) == 0 ? 1 : 0);
+> /**
+> 0
+> 1
+> */
+> ```
+>
+> 第一个比较结果为不相等,第二个比较结果为相等，因为对于他们来说有不同的精度，值得我们注意。
+
+现在我们来认识下我们为什么真正的需要接口，我们完全可以对任意类实现compareTo方法来传递给sort方法，它不是也可以调用我们使用的这个CompareTo方法吗？但是这样的实现并不安全，我们的静态方法没有任何能力得到我们的承诺，承诺实现了compareTo方法，这是很不安全的，但是如果使用了接口来表明，我们的编译器可以通过查看我们是否实现了接口来确实我们确实会实现compareTo方法，显然这样是更安全的。而且接口能更加规范我们实现方法的形式，这对我们一个通用的接口可以供给很多类使用，提高了代码的可用性。
+
+> 但是实际上Arrays的sort方法并没有设置为接受Comparable类型的数组参数（Comparable类型是一种类型，它可以接受所有实现了这个接口的类对象），可能出于很多原因。我们也不能如我们认为的一样从编译器处获得很多便利（但是接口确实存在这样的便利，我们将在之后看到），它接受一个Object数组，然后使用：
+>
+> ```java
+> ((Comparable) dest[j-1]).compareTo(dest[j])>0; j--)
+> ```
+>
+> 这种笨拙的方式将它转化为Comparable对象来使用，所以本质上我们还是需要将任何使用sort方法数组类型实现Comparable接口，不然它就会报告ClassCastException。
+
+### 接口的属性
+
+接口和类大不相同，它不能使用new来创建一个实例，从性质上来看他很类似与抽象类，但是对于一个类而言他们大不相同，抽象类只能作为一个类的祖先，而且可以给予子类字段；但是接口可以被一个类实现多个，而且接口只是向类提供了一系列待实现的方法，这是一种需求。
+
+我们不能创建接口的实例，但是却能使用接口类型引用实现了这个接口的类对象：
+
+```java
+Employee e = new Employee();
+Comparable c = e;
+```
+
+但是记住吼，像类的子类一样，我们只能使用自己声明的方法，但是调用的是该类的实现！（关于这些我们可以查看 [方法调用的过程](#方法调用的过程)）
+
+同类可以建立丰富的继承层次一样，我们也可以建立接口的丰富层次，一个接口可以扩展其他接口：
+
+```java
+// Moveable.java
+public interface Moveable {
+    void move(double x, double y);
+}
+
+// Powered.java
+public interface Powered extends Moveable {
+        double milesPerGallon();
+        double SPEED_LIMIT = 95;
+}
+```
+
+注意一个java文件中也是只能有一个公共接口或者一个公共类，然后也通过extends实现继承。新的接口可以拥有旧的超接口的所有方法，然后再扩展需要的方法。然后在接口中定义我们的静态变量。
+
+> 注意接口中的变量注定是静态的，公有的，不变的，所以我们可以不添加关键字static、public和final，这是Java语言的规范。
+
+我们来看一下如何使用自定义的接口：
+
+```java
+class Test implements Powered {
+        public static void main(String[] args) {
+                Powered p = new Test();
+                p.move(1.1d, 1.2d);
+                p.milesPerGallon();
+        }
+        
+        @Override
+        public void move(double x, double y) {
+                System.out.println("x = " + x + " y = " + y);
+        }
+        
+        @Override
+        public double milesPerGallon() {
+                System.out.println(Powered.SPEED_LIMIT);
+                System.out.println(SPEED_LIMIT);
+                return 2.4d;
+        }
+}
+
+/*
+x = 1.1 y = 1.2
+95.0
+95.0
+*/
+```
+
+我们必须覆写一个接口和它超接口的所有方法，然后一位实现了它，我们可以直接使用它的静态常量，也可以通过接口名显示调用（建议不这样用，我们使用到接口常量的时刻大多数我们已经实现了它，直接使用名称即可）。
+
+一个类可以实现多个接口，这个是接口相较于抽象类最大的优势，如果我们想获得一个对象的深拷贝，我们可以调用这个对象的Clone方法，而不是简单的使用`=`，使用clone方法的前提就是我们实现了Cloneable接口，我们稍后会为Employee类实现这样的方法：
+
+```java
+public Employee implements Cloneable, Comparable {
+	...
+}
+```
+
+### 静态和私有方法
+
+从Java8，Java9继往开来，Java陆续支持了接口中的静态方法，这并没有什么突兀，有时候我们需要接口中包含一些可以方便我们的工具方法，那么我们需要接口中的静态方法；接口中的一些方法比较复杂，需要协助函数，那么我们可以定义个私有方法。
+
+在Java8之前，这些情形通常使用伴随类来解决：例如Path接口是路径的接口，不支持静态方法时，我们需要在它的伴随类Paths类中找到`Paths.get()`静态方法，从一系列字符串中获得一个完整的路径。后来Path中支持了`Path.of()`静态方法，任何调用Paths.get的行为就会自动再次调用Path.of方法。所以现在对于我们没有理由继续使用伴随类来为接口丰富方法。
+
+接口中的私有方法只能被接口内部调用，用法有限，往往只能作为接口方法的辅助方法。
+
+### 默认方法
+
+我们可以在接口中为方法指定一个默认实现，这样在我们在类中实现接口时，为它赋予某种许可时，我们也不用担心它是否有是实现接口中的方法（不过这个思想是危险的，我们总是要为接口中的方法实现，因为这正是接口存在的意义）。
+
+不过对于抽象性偏高的接口，我们对于它实现默认方法总是意义不大的，例如：
+
+```java
+public interface Comparable<T> {
+    default int comparTo(T other) { return 0; }
+}
+```
+
+这是我们在类型未知情况下做的最多的事了，但是它的意义仍然不大。
+
+发挥我们的想象力，我们可以在Collection方法中看到这样的接口方法，它是很精巧可用的：
+
+```java
+public interface Collection {
+	int size;
+    default boolean isEmpty() { return size() == 0; }
+}
+```
+
+这样我们在size方法已经定义时，就不要再定义size方法。
+
+> 事实上，Colletion接口也并没有这样做，因为接口的抽象意义很大，对于所有容器类事实上他们可能还有一个超类为AbstractCollection，它实现了这个接口，在它中使用的isEmpty()方法是使用这种形式实现的。
+>
+> 对于我们而言，通过一个抽象类为接口方法指定默认实现已经过时了，我们完全可以在接口中完成这项工作。
+
+对于默认方法，最终要的意义在于，它提供了Java新的版本向之前版本很好的兼容性，我们称为`接口演化(interface evolution)`。
+
+接口演化是这样的情形，以Collection接口为例，在Java8之前我们实现了一个Bag类实现了这个接口，但是Java8后，这个接口更新了接口内的方法`stream`，我们的Bag类并没有实现这个方法，所以如果编译任意有使用Bag类对象的文件，一定会出错，因为Bag类没有实现它需要实现的方法，它是一个抽象类。
+
+当我们直接使用包含类文件`.class`的jar包时，并不会出错，因为类不会被再次编译，因为为接口增加方法可以实现二进制兼容。但是如果我们试图在Bag实例上调用stream方法时候一定会出错，因为在它现有的class文件中并没有这个方法。我们所以使用默认方法来解决这个问题，及时我们把它声明为空，实现它的类再重新编译时也不会错，而且在这个类上调用这个方法也能够完美运行，因为它可以直接调用接口中的实现部分。
+
+### 解决默认方法冲突
+
+当超类中一个方法，实现的接口有一个同名方法，或者实现的多个接口有同名的方法，亦或是超类实现了接口，子类又实现了接口的子接口，碰到这些方法名冲突的情况Java有什么样的策略呢？我们来分开分析一下：
+
+1. 超类优先，不管什么情况下发生了同名冲突，即使接口含有方法的默认定义，当同名接口在超类中存在时，默认的接口方法将被忽略，以超类实现的方法为准。
+
+2. 接口冲突，当一个接口提供了一个方法，另一个接口提供了同名的方法，而且它们中有一个提供了默认实现，我们称之为发生了冲突，这时候我们只需要解决冲突，不论冲突如何，我们仅仅需要在该类中重写这个方法，这样，我们将会以这个重写的方法为准。
+
+   ```java
+   interface Person {
+       default String getName() {
+           return "person";
+       }
+   }
+   
+   interface Named {
+       default String getName() {
+           return "Named";
+       }
+   }
+   
+   public class Student implements Named, Person{
+   
+       public static void main(String[] args) {
+           Student s = new Student();
+           Person p = s;
+           Named n = s;
+           System.out.println(s.getName());
+           System.out.println(p.getName());
+           System.out.println(n.getName());
+       }
+   
+       public String getName() {
+           return Named.super.getName();
+       }
+   }
+   /*
+   Named
+   Named
+   Named
+   */
+   ```
+
+   我们看到输出的都是Named，这一切都因为我们在类中指定了使用的方法为Name接口的getName方法。
+
+   还有呢，当我们从不同的接口接受到了都没有实现的方法？这时候并不是冲突，给我们的也有两个选择，实现其中之一，或者干脆什么都不做，让该类作为一个抽象方法，让子类来解决这个问题。
+
+   记住在遇到同名的方法时，以实现为准（存在冲突时Java会要求我们解决冲突，解决后以我们重写的方法为准），以超类优先。
+
+   > 以超类优先的准则是很有效的，在Java8之前没有默认方法，之前的代码如果兼容现在的接口中的新默认方法，需要以它们类中实现的方法为准，因为这些之前实现的方法往往是对于自身有效的，不应该轻易覆写。
+
+### 接口与回调
+
+`回调(callback)`是一种常见的设计模式，我们对任意发生的事件指定一个处理的动作。
+
+很多时候我们可以用接口来帮助我们实现回调。回调时候我们期望产生一个动作，或者说一个函数，这也是大多数语言的选择，但是对于Java使用面向对象设计的思想，我们可以传递一个对象，对象显然包含更多可能有效的数据，但是我们怎么改知道回调时候该调用对象的哪个方法呢？
+
+通过接口，我们指定回调时候一定会使用某个接口，这个我们可以向回调传递实现了该接口的对象。以Java的定时器Timer为例，它在我们指定的时刻就会通知我们一次，这调用一次回调函数来实现，它需要一个实现了`ActionListener`的接口的对象，这个接口中包含`actionPerformed(ActionEvent event);`方法，我们使用这些信息来实现一个简单的回调用例：
+
+```java
+import javax.swing.*;
+import javax.tools.Tool;
+import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.time.Instant;
+
+
+public class TimerTest {
+    public static void main(String[] args) {
+        var listener = new TimerPrinter();
+        var timer = new Timer(1000, listener);
+        timer.start();
+        JOptionPane.showMessageDialog(null, "退出？");
+        System.exit(0);
+    }
+}
+
+class TimerPrinter implements ActionListener {
+
+    @Override
+    public void actionPerformed(ActionEvent e) {
+        System.out.println("这次蜂鸣，当前时间是" + Instant.ofEpochMilli(e.getWhen()));
+        Toolkit.getDefaultToolkit().beep();
+    }
+}
+```
+
+这个程序会在每秒钟进行一次蜂鸣，然后打印出当前时间。我们在新建java.swing.Timer对象时候就可以为它指定它触发的间隔（单位：毫秒）回调的对象，后来我们可以使用start来启动它。在这里我们为它创建了一个实现了ActionListener的类，它覆写的方法会完成打印和蜂鸣的回调工作：
+
+分别通过函数`Instance.ofEmpochMilli`这个函数接受一个毫秒数，然后返回对应的当前时间，刚好ActionEvent对象中有getWhen方法返回一个毫秒数字。然后通过ToolKit GUI包来进行蜂鸣的操作。
+
+我们在主函数中还有一个`JOptionPane.showMessageDialog`，这也是Java GUI中的方法，它会产生一个对话框，这些我们都会在后面慢慢了解。
+
+### Comparator接口
+
+前面我们知道，可以通过为一个类实现Comparable接口，然后就可以使用Arrays.sort方法对这个这个类对象数组进行排序，按照类实现的copareTo方法。但是我们对于一个类可能有多种排列准则，我们也许希望一个字符按照首字母排序，也许是按照长度排序，亦或是通过字符权值和…为解决这样的问题，我们需要一个比较器，这是实现了`Comparator`接口类的一种类。
+
+Comparator类中有方法`int compare(T o1, T o2);`，从类型参数我们知道它是一个泛型接口，它类似于CompareTo方法的返回，但是它接受两个参数，因为作为比较器只需要进行比较即可，不存储数据，但是调用它高度依赖于一个实现了它的类对象，因为他并非为静态的。
+
+那么如何具体使用一个Comparator接口呢？我们之前的Arrays.sort方法其实有这样的一种重载形式：`public static <T> void sort(T[] a, Comparator<? super T> c)`它接受一个数组对象和与之同类型Comparator接口实现的对象，所以我们现在来定义一个Comparator接口的类来使用：
+
+```java
+public class ComparatorTest {
+    public static void main(String[] args) {
+        String [] arrays = {"Hello", "I", "am", "you"};
+        Arrays.sort(arrays, new LengthComparator().reversed());
+        System.out.println(Arrays.toString(arrays));
+    }
+}
+
+class LengthComparator implements Comparator<String> {
+    public int compare(String o1, String o2) {
+        return o1.length() - o2.length();
+    }
+}
+// [Hello, you, am, I]
+```
+
+​		我们成功通过实现Comparator接口，然后用这个比较器，通过比较字符长度来排序字符数组，这个接口中还有很多有用的方法，日后还会接触。
+
+### 对象克隆
+
+我们已经知道，Java中的对象变量都只是引用，赋值符号`=`也只是让两个变量指向同一块内存空间，并不会复制这个对象一次，这称为`浅拷贝`。
+
+但是很多时候我们需要保留下一个可变对象某事某刻的状态，然后当我们造成了某种错误后可以回到这个保留的状态，这时候我们需要的就是`深拷贝`，实现深拷贝可以使用Java中的clone方法。
