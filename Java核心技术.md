@@ -3474,3 +3474,465 @@ e1.name = fully
 
 ## 6.2 lambda表达式
 
+在前面，我们看到新建Timer对象需要传递一个实现了ActionListener接口的类，这个类只是实现了actionPerformed方法；还有对于sort方法的第二种方法传递参数，后面的对象是我们另外实现的实现了Comparator接口中唯一compare方法的类。很多时候，我们发现，我们并不是很需要这样一些类，而是需要这些类中一些完成特定功能的代码块，Java中的Lambda表达式就是这样一种可以供传递的代码块。
+
+在其他语言中，我们可以通过函数式编程轻易的传递代码块，但是Java为了语言的简单和一致性一致都拒绝使用这种实现，后来终于引入了lambda表达式的内容，让我们也可以轻易通过这样的语法来轻易实现传递代码块，而不用再编写冗余的实现各种接口的类。
+
+### Lambda表达式的基础语法
+
+`(T arg1, T arg2...) -> { Code }`
+
+在一个括号中指定参数列表，然后一个`->`，最后更上使用的代码。这种语法有多种变种，当实现语法只用一行时，我们可以省略大括号：
+
+```java
+(String first, String sencond) -> first.length() - second.length() // 我们甚至省略了分号和return语句，当然这都是必须的
+```
+
+如果一个lambda表达式没有参数，那么我们不能省略它的参数列表的括号：
+
+```java
+() -> System.out.println("Hello world")
+```
+
+如果可以从一个赋值表达式中推导参数的类型，那么我们可以省略参数类型：
+
+```
+Comparator <String> comp = (first, senconde) -> first.length() - second.length();
+```
+
+如果只有一个参数，而且它的类型可以推导出，那么我们更可以省略小括号：
+
+```java
+ActionListioner listener = event -> System.out.println("时间是" + Instance.ofEpochMilli(event.getWhen()));
+```
+
+> 注意lamda表达式返回值时，需要在所有分支中都返回值！
+
+### 函数式接口
+
+前面我们已经看到，Java中包含封装代码块的接口，例如ActionListener和Comparator。对于这种只有一个抽象方法的接口，我们称之为`函数式接口（functional interface）`
+
+> 注意我们的用词，接口只含有一个抽象方法，也许常识上来讲，接口中应该所有方法都是抽象的，但是事实上并不，我们可以为方法实现默认实现，可以定义静态方法，种种，我们必须确定函数式接口只有一个抽象方法。
+
+我们可以在任何需要函数式接口的地方使用我们的lambda表达式，在底层，系统将会自动将表达式转化为一个对应接口类的对象，对象的管理取决于系统的实现，而且它的效率很高区别于传统的内联类。
+
+我们在之前使用这些函数式接口的地方都可以使用lambda表达式：
+
+```java
+Arrays.sort(strings, (String first, String second) -> first.length() - second.length());
+```
+
+```java
+var timer = new Timer(1000, event->{
+    System.out.println("这次蜂鸣，当前时间是" + Instant.ofEpochSecond(event.getWhen()));
+    Toolkit.getDefaultToolkit().beep();
+});
+```
+
+看起来它们更简便，而且效率也更高了。
+
+但是对于lambda表达式而言，美中不足之处在于它也仅仅只能作为一个函数式接口对象来使用，在实际上它并不能等同于一个函数对象（Java中也没有函数对象），不能直接被调用，不能保存一个实际方法，也不能赋值给Object类对象。
+
+对于Java API而言，在java.util.function包中定义了诸多通用的函数式接口，例如`BiFunction<T, U, R>`它包含一个接受参数类型为T，U返回类型为R的返回值的函数，我们当然可以把lambda表达式：
+
+```java
+BiFunction <String, String, int> fun = (String first, String second) -> first.length() - second.length();
+```
+
+但是这样的函数式接口对象并没有利用到排序上的意义，因为排序是我么需要有特定含义的Comparator接口对象，而不是BiFunction，它仅仅指定了特殊的返回类型而已。
+
+但是不可否认，标准库还是有很多需要这种具有特殊类型效果的函数式接口，例如
+
+```java
+public interface Predicate<T>
+{
+	boolean test(T t);
+}
+```
+
+```java
+Predicate<String> predicate = word -> word.isEmpty();
+ArrayList<String> strings = new ArrayList<>();
+strings.add("");
+strings.add("I");
+strings.add("am");
+strings.add("a");
+strings.add("little");
+strings.add("test");
+strings.removeIf(predicate);
+System.out.println(strings);
+// [I, am, a, little, test]
+```
+
+这样就实现了ArrayList的简单过滤。
+
+还有关于Supplier接口：
+
+```java
+public Supplier<T> {
+	T get();
+}
+```
+
+它会返回我们需要类型的一个值，可以帮助我们实现懒计算（这个计算被执行，当它确实需要被执行是才进行)
+
+```java
+public Employee(String name, double salary, Date hireDay) {
+    this.name = name;
+    this.salary = salary;
+    Supplier<Date> dateSupplier = () -> new Date(2000, Calendar.FEBRUARY, 11);
+    this.hireDay = Objects.requireNonNullElse(hireDay, dateSupplier.get());
+}
+
+   public static void main(String[] args){
+        Employee e = new Employee("hellen", 2010, null);
+        System.out.println(e);
+    }
+// Charpter6.Employee[name=hellen,salary=2010.0,hireDay=Sun Feb 11 00:00:00 CST 3900]
+```
+
+上面实现了懒计算，只有hireDay为空时候我们才会构造一个新的Date对象，有时候可以节约空间。
+
+### 方法引用
+
+有的时候使用lambda表达式只涉及一个方法，我们只希望lambda表达式起到一个参数传递的效果，那么为什么我们不使用`方法引用`呢？例如：
+
+```java
+var timer = new Timer(1000, event->System.out.println(event);
+```
+
+我们可以使用方法引用的方式来简化：
+
+```java
+var timer = new Timer(1000, System.out::println);
+```
+
+后面的这个表达式即为`方法引用（Method reference）`，它只是编译器生成一个函数式接口的实例，覆盖接口中对应的抽象方法来为我们调用这个方法引用对应的方法`System.out.println(event)`。
+
+> 我们要理解lambda表达式和方法引用都并非对象，他们仅仅能作为函数时接口的引用，那也仅仅因为编译器在编译时会为他们生成一个对应的对象。
+
+了解到方法引用是什么效果，转过来我们再了解下它的语法，它有三种形式：
+
+1. `object::intanceMethod`
+2. `Class::instanceMethod`
+3. `Class::staticMethod`
+
+第一个例如我们上面的例子：
+
+```java
+var timer = new Timer(1000, System.out::println);
+```
+
+System.out是一个对象，调用时将会向这个`System.out.println()`方法中传递参数。
+
+第二个，比如下面的例子：
+
+```javas
+Arrays.sort(arrays, String::compareToIgnoreCase);
+```
+
+这个是用类名加方法名的组合，将会对两个对象起作用，等价于
+
+```java
+(x, y)->x.compareToIgnoreCase(y);
+```
+
+第三个，调用静态方法，所有的参数将会传递到静态方法，例如：`Math::pow`等价于`(x, y) -> Math.pow(x, y)`。
+
+> Tips：当一个方法引用存在重载时，编译器会根据参数类型自动选择最合适的方法。
+>
+> Java为了编程方便，提供了很多可以作为函数式接口使用的方法，例如：`Object.isNull`，它可以判断Java对象是否为空，当然我们可以使用`obj -> obj == null`来替代，但是前者也挺不错。
+>
+> 方法引用和lambda表达式还是存在着一些差别的，例如一个对象`separator`有方法`equals`，使用方法引用`separator::equals`在创建对应方法的对象时就会报告NullPointerException，而使用`obj -> separator.equals(obj)`只会在运行时报告作物。
+
+我们也可以使用this和super这种特殊的关键字作为 方法引用的对象参数`object`部分来使用：
+
+```java
+class Greeter {
+    public void greet(ActionEvent event) {
+        System.out.println("Hello, this time is" + Instant.ofEpochMilli(event.getWhen()));
+    }
+}
+
+public class RepeatGreeter extends Greeter{
+    public static void main(String[] args) {
+        RepeatGreeter repeatGreeter = new RepeatGreeter();
+        ActionEvent event = new ActionEvent(repeatGreeter, 1, "Test");
+        repeatGreeter.greet(event);
+        JOptionPane.showMessageDialog(null, "退出？");
+        System.exit(0);
+    }
+
+    public void greet(ActionEvent event) {
+        Timer timer = new Timer(1000, super::greet);
+        timer.start();
+    }
+}
+// 这个函数会打印时间在每一秒
+```
+
+### 构造器引用
+
+一般方法可以使用作为方法引用，构造器作为一种方法也可以被使用当做需要函数式接口的地方进行使用。
+
+例如，我们可以从一系列字符串的ArrayList中构造出对应的People类的List：
+
+```java
+class Person{
+    String name;
+    Person (String name) {
+        this.name = name;
+    }
+
+    public String toString() {
+        return "Person{" +
+                "name='" + name + '\'' +
+                '}';
+    }
+}
+
+public class ConstructorReferenceTest {
+    public static void main(String[] args) {
+        List<String >list = List.of("Hello", "I", "am", "Sanpao");
+        ArrayList<String >arrayList = new ArrayList<>(list);
+        Stream<Person> stream = arrayList.stream().map(Person::new);
+        List<Person> people = stream.collect(Collectors.toList());
+        System.out.println(people);
+    }
+}
+// [Person{name='Hello'}, Person{name='I'}, Person{name='am'}, Person{name='Sanpao'}]
+```
+
+这里面使用了stream和map，这在卷二中将会有讲解。
+
+我们甚至可以对数组类型创建构造器引用，形如`int[]::new`，后面接受长度参数，凭借它我们可以改变Java无法创建泛型T的数组，因为泛型在编译时会擦除，我们创建任意`T[] array`将为`Object[] array`。
+
+想要创建一个特定类型的数组，我们可以使用`stream.toArray()`方法，它可以接受一个构造器引用，然后使用stream流中的内容来创建我们需要类型的数组。
+
+```java
+public static void main(String[] args) {
+    String[] list = {"Hello", "I", "am", "you"};
+    Stream<Person> stream = Arrays.stream(list).map(Person::new);
+    Person [] people = stream.toArray(Person[]::new);
+    System.out.println(Arrays.toString(people));
+}
+// [Person{name='Hello'}, Person{name='I'}, Person{name='am'}, Person{name='you'}]
+```
+
+### 变量作用域
+
+我们通常希望lambda表达式可以使用更多的参数，不仅仅是接口中传递的参数，但是我们知道lambda表达式在实它的作用时，会将自己装换为实现对应接口的类，那么它是如何包含参数的呢？
+
+它使用一种称为捕获的方式，它可以捕获和当前声明部分的所有可见的变量，如果在lambda表达式中实际的使用了这些变量，那么捕获将会发生，然后将它们转换为它实现类的对象的实例变量中，这个变量也被称为自由变量。在lambda表达式中只可以使用引用值不会变的变量作为自由变量，而且当某个值可能会在外部改变时也不能作为自由变量，总的来说自由变量只能使用`事实最终变量（effectively final）`。
+
+![image-20211129221426404](https://gitee.com/chenyuyu118/project-f/raw/master/image/image-20211129221426404.png)
+
+可以这样：
+
+```java
+public void greet(ActionEvent event, String word) {
+    Timer timer = new Timer(1000, event1 -> {
+        System.out.println(word);
+    });
+    timer.start();
+}
+```
+
+```java
+public void greet(ActionEvent event, String word, int i) {
+    Timer timer = new Timer(1000, event1 -> {
+        System.out.println(word + i);
+    });
+    timer.start();
+}
+```
+
+这样不可以：
+
+```java
+public void greet(ActionEvent event, String word, int i) {
+    i ++;
+    Timer timer = new Timer(1000, event1 -> {
+        System.out.println(word + i);
+    });
+    timer.start();
+}
+```
+
+```java
+public void greet(ActionEvent event, String word, int i) {
+    Timer timer = new Timer(1000, event1 -> {
+        System.out.println(word + i++);
+    });
+    timer.start();
+}
+```
+
+但是有一些特殊情况，我们如果让lambda表达式引用了一些可变对象，也许它不会错误，但是要明确它是不合法的。 
+
+```java
+public class RepeatGreeter extends Greeter{
+    public static void main(String[] args) throws InterruptedException {
+        RepeatGreeter repeatGreeter = new RepeatGreeter();
+        ActionEvent event = new ActionEvent(repeatGreeter, 1, "Test");
+        StringBuilder builder = new StringBuilder();
+        repeatGreeter.greet(event, "hello Bob", builder);
+        for (int i = 0; i < 10; ++i) {
+            builder.append("1");
+            Thread.sleep(1000);
+        }
+        JOptionPane.showMessageDialog(null, "退出？");
+        System.exit(0);
+    }
+
+    public void greet(ActionEvent event) {
+        Timer timer = new Timer(1000, super::greet);
+        timer.start();
+    }
+
+    public void greet(ActionEvent event, String word, StringBuilder builder) {
+        Timer timer = new Timer(1000, event1 -> {
+            System.out.println(word + builder.toString());
+        });
+        timer.start();
+    }
+}
+/*
+hello Bob11
+hello Bob111
+hello Bob1111
+hello Bob11111
+hello Bob111111
+hello Bob1111111
+hello Bob11111111
+hello Bob111111111
+hello Bob1111111111
+*/
+```
+
+lambda表达式拥有和它所嵌套块相同的作用域，同样要避免命名冲突和遮蔽的存在，在一个方法中不可以拥有同名的局部变量，this参数也可以使用为它当前类的this参数，使用lambda表达式和正常块没有什么不同：
+
+```java
+public class Application {
+    public void init() {
+        ActionListener listener = event-> {
+            System.out.println(this.toString());
+        };
+        Timer timer = new Timer(1000, listener);
+        timer.start();
+    }
+
+    public static void main(String[] args) {
+        Application application = new Application();
+        application.init();
+        JOptionPane.showMessageDialog(null, "exit");
+        System.exit(0);
+    }
+}
+// 打印会显示这个类Application的信息
+```
+
+### 处理Lambda表达式
+
+关于我们使用lambda表达式的原因，是因为我们想使用代码块，那么我们为什么要使用代码块呢？
+
+- 我们想在一个单独的线程中运行代码
+- 我们想要多次运行同一段代码
+- 我们希望在算法的合适位置运行代码（排序中的比较）
+- 发生某种情况时候再运行代码（回调函数）
+- 在必要时候执行代码
+
+…
+
+出于这些目的，我们使用lambda接口，而且为了接受一个存储和传递一个lambda表达式，我们有丰富的函数式接口：
+
+| 函数式接口          | 参数类型 | 返回类型 | 抽象方法名 | 描述                      | 其他方法                 |
+| ------------------- | -------- | -------- | ---------- | ------------------------- | ------------------------ |
+| Runnable            | 无       | 无       | run        | 一个可运行的函数          |                          |
+| Supplier<T>         | 无       | T        | get        | 获得T类型参数             |                          |
+| Consumer<T>         | T        | 无       | accpet     | 处理一个T类型的参数       | andThen                  |
+| BiConsumer<T, U>    | T,U      | 无       | accept     | 处理两个                  | andThen                  |
+| Function<T, R>      | T        | R        | apply      | 使用T类型产生R类型结果    | compose,andThen,identity |
+| BiFunction<T, U, R> | T,U      | R        | apply      | 使用T,U类型产生R类型      | andThen                  |
+| UnaryOperator<T>    | T        | T        | apply      | T上一元运算符             | compose,andThen,identity |
+| BinaryOperator<T>   | T,T      | T        | apply      | T上二元运算符             | compose,maxBy,minBy      |
+| Predicate<T>        | T        | boolean  | test       | 运用T类型产生一个判断结果 | and,or,negate,isEqual    |
+| BiPreDicate<T, U>   | T,U      | boolean  | test       | 布尔值函数使用T，R类型    | and,or,negate            |
+
+我们来编写一些简单的实例来使用这些接口:
+
+```java
+public static void repeat(int n, Runnable action) {
+    for (int i = 0; i < n; ++i) {
+        action.run();
+    }
+}
+
+public static void main(String[] args) {
+    Runnable action = () -> {
+        System.out.println("Hello!");
+    };
+    repeat(10, action);
+}
+// 这个例子会答应Hello!10次
+```
+
+我们可以进行一次改进，让它可以打印执行的次数：
+
+```java
+ public static void repeat(int n, IntConsumer action) {
+        for (int i = 0; i < n; ++i) action.accept(i);
+    }
+
+    public static void main(String[] args) {
+        IntConsumer action = time -> System.out.println(time + ". Hello!");
+        repeat(5, action);
+    }
+/*
+0. Hello!
+1. Hello!
+2. Hello!
+3. Hello!
+4. Hello!
+*/
+```
+
+在这里我们使用了IntConsumer而不是Consumer，它更高效，类似的还有这些函数式接口：
+
+| 函数式接口          | 参数类型 | 返回类型 | 抽闲方法名   |
+| ------------------- | -------- | -------- | ------------ |
+| BooleanSupplier     | 无       | boolean  | getAsBoolean |
+| PSupplier           | 无       | P        | getAsP       |
+| PConsumer           | P        | 无       | accpet       |
+| objPConsumer<T>     | T，p     | void     | accept       |
+| PFunction<T>        | p        | T        | apply        |
+| PToQFunction        | p        | q        | applyAsQ     |
+| ToPFunction<T>      | T        | p        | applyAsP     |
+| ToPBiFunction<T, U> | T,U      | p        | applyAsP     |
+| PUnaryOperator      | p        | p        | applyAsP     |
+| PBinaryOperator     | p,p      | p        | applyAsP     |
+| PPredicate          | p        | boolean  | test         |
+
+注	：p、q分别为int、long、double；P、Q为Int，Long，Double。
+
+> Tips：最好使用所有我们提到的接口而不是一些遗弃的接口，除非你有很多可以生成这个接口的实例。
+>
+> 大多数函数式接口都有提供非抽象方法来生成和合并函数，例如andThen：
+>
+> ```java
+> return (T t) -> { accept(t); after.accept(t); };
+> ```
+>
+> 它的实现如此，在一个Consumer接口后调用它，例如
+>
+> ```java
+> Consumer s = ...;
+> Consumer s1 = ...;
+> s.andThen(s1).accpet(i); 
+> ```
+>
+> 就等于限制性前一个accpet方法，然后返回s1对应的Consumer方法，可以供我们继续执行。还有很多非抽象方法值得我们了解，都在后面啦。
+>
+> 如果我们想设计自己的函数式接口，记得使用`@FunctionalInterface`进行注解，这样当我们错误的引入了多个抽象方法时候，编译器会报错。
+
+### 再谈Conparator
