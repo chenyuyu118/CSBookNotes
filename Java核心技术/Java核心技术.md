@@ -3935,4 +3935,80 @@ public static void main(String[] args) {
 >
 > 如果我们想设计自己的函数式接口，记得使用`@FunctionalInterface`进行注解，这样当我们错误的引入了多个抽象方法时候，编译器会报错。
 
-### 再谈Conparator
+### 再谈Comparator
+
+我们有时候需要更方便的生成一些Comparator比较方法，Comparator类中为我们提供了很多有用的静态方法。
+
+Comparing使用一个Function<T,R>作为一个键提取器，将原序列类型T映射为R，下面是一个使用的例子：
+
+```java
+class Person{
+    String lastName;
+    String firstName;
+    Person (String firstName, String lastName) {
+        this.firstName = firstName;
+        this.lastName = lastName;
+    }
+
+    public String getFirstName() {
+        return firstName;
+    }
+
+    public String getLastName() {
+        return lastName;
+    }
+
+    @Override
+    public String toString() {
+        return "Person{" +
+                "lastName='" + lastName + '\'' +
+                ", firstName='" + firstName + '\'' +
+                '}';
+    }
+}
+
+public class ConstructorReferenceTest {
+    public static void main(String[] args) {
+		Comparator<Person> comparator = Comparator.comparing(Person::getFirstName);
+        Person[] people = {new Person("Li", "ming"), new Person("Zhang", "hua"),
+                new Person("Dong", "zuo"), new Person("Bi", "si")};
+        Arrays.sort(people, comparator);
+        System.out.println(Arrays.toString(people));
+    }
+}
+```
+
+使用Person::getFirstName，我们可以不用书写lambda表达式，不用实现Comparable接口，轻松将Person类型映射到可比的String。我们当然可以做到更多
+
+```java
+Comparator<Person> comparator1 = Comparator.comparing(Person::getFirstName).thenComparing(Person::getLastName);
+```
+
+使用thenComparing可以在FirstName相同时候，再使用一个键进行比较。
+
+```java
+Comparator<Person> comparator2 = Comparator.comparing(Person::getFirstName, (s, t) -> s.length()-t.length());
+```
+
+在一个键提取器后还可以加上另一个比较器，实现提取后再比较的效果。
+
+当然对于特殊类型Int，Double，Long，有他们特殊类型的comparingP方法：
+
+```java
+Comparator<Person> comparator3 = Comparator.comparingInt(p -> p.getFirstName().length());
+```
+
+如果键值映射存在空，或者在键存在空特殊情况下，我们需要使用nullFirst和nullLast方法帮助排序，防止报错。
+
+```java
+Comparator<Person> comparator4 = Comparator.comparing(Person::getFirstName,
+        Comparator.nullsFirst(Comparator.comparing(String::length)));
+```
+
+为了我们最方便建立一个比较器，我们可以使用natureOrder或者reverseOrder（等价于natrualOrder().reverse())
+
+```java
+Comparator<Person> comparator5 = Comparator.comparing(Person::getFirstName, Comparator.nullsFirst(Comparator.naturalOrder()));
+```
+
+## 6.3 内部类
