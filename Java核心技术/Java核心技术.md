@@ -4012,3 +4012,263 @@ Comparator<Person> comparator5 = Comparator.comparing(Person::getFirstName, Comp
 ```
 
 ## 6.3 内部类
+
+内部类是一个定义在类内部的类，它有下面的特点：
+
+- 内部类可以对同一个包内类隐藏。
+- 内部类可以访问类的私有字段。
+
+### 使用内部类访问对象状态
+
+我们可以使用内部类中编写代码来任意访问内部类字段，看下面的例子：
+
+```java
+public class TalkingClock {
+    private int interval;
+    private boolean beep;
+
+    public TalkingClock(int interval, boolean beep) {
+        this.interval = interval;
+        this.beep = beep;
+    }
+
+    public void start() {
+        TimerPrinter timerPrinter = new TimerPrinter();
+        var timer = new Timer(interval, timerPrinter);
+        timer.start();
+    }
+
+    // 内部类
+    public class TimerPrinter implements ActionListener {
+        public void actionPerformed(ActionEvent e) {
+            System.out.println("At the tone, the time is " + Instant.ofEpochMilli(e.getWhen()));
+            if (beep) Toolkit.getDefaultToolkit().beep();
+        }
+    }
+	// 内部类
+    public static void main(String[] args) {
+        var test = new TalkingClock(1000, false);
+        test.start();
+        JOptionPane.showMessageDialog(null, "Quit Program?");
+        System.exit(0);
+    }
+}
+```
+
+在内部类实现代码中我们发现，我们没有定义字段beep，但是确实可以正确访问，这是内部类的特权。我们可以理解为内部类中保存着一个外部类的对象引用`outer`，访问beep时为`outer.beep`，通过内部类，我们不需要为字段beep编写一个访问器。
+
+> 可以将内部类也设置为私有，这样只有它对应的外部类才能构造这样的一个对象，但是对于Java中的类，只有内部类才能设置为私有，常规类只能设置为包可见性和公共。
+>
+> 我们虽然在类中声明了内部类，但是它构建一个内部类对象还需要在外部类的方法中完成这样的工作。
+
+### 内部类特殊的语法规则
+
+我们上次设想内部类中含有一个外部类的引用为`outer`，但是实际情况比这复杂的多，想要获得对应外部类的引用，需要使用`OuterClass.this`，例如访问外部类的beep，就需要使用`TalkingClock.this.beep`。
+
+对于是公共的内部类，我们也可以通过外部类对象来创建一个内部类对象，但是语法十分复杂：
+
+```java
+TalkingClock t = new TalkingClock(1000, true);
+TalkingClock.TimerPrinter p = t.new TimerPrinter();
+```
+
+我们必须通过一个外部类的对象才能创建内部类对象，通过`OuterClass.InnerClass`引用一个内部类，通过`Outerobj.new InnerClass`创建一个内部类对象。
+
+> 内部类的静态字段必须为final，因为对于静态字段的含义，我们需要一个类共享一个静态变量不发生改变，但是对于内部类，如果它拥有一个不是常量的静态字段，它很可能就不唯一！
+>
+> 内部类也不能含有静态方法，显然这让语言的复杂度进一步提升。
+
+### 内部类是一种编译器现象
+
+实际上内部类是一个和JVM虚拟机毫无关系的概念，它只是我们通过编译器实现的一种特殊的类，使用反射工具分析我们编写的内部类：
+
+```java
+public class Charpter6.TalkingClock$TimerPrinter {
+    final Charpter6.TalkingClock this$0;
+    public Charpter6.TalkingClock$TimerPrinter(Charpter6.TalkingClock);
+    public void actionPerformed(java.awt.event.ActionEvent);
+};
+```
+
+它显示TimerPrinter类只是一个加上了\$的特殊类而已，它只是含有外部类的唯一引用而已。那么问题来了，作为一个外部类，它将会如何访问TalkingClock类的私有对象呢？我们再用反射进行分析：
+
+> 这里除了点问题，使用java15编译失去了这个特性，后来使用java1.8得到了正确的结果：
+
+![image-20211202172422107](https://gitee.com/chenyuyu118/project-f/raw/master/image/image-20211202172422107.png)
+
+这里显示TalkingClock类中含有一个静态方法`access\$000`它的返回类型恰好是boolean，其实返回的就是beep，我们也可以从反汇编的代码中看出来：
+
+![image-20211202172724276](https://gitee.com/chenyuyu118/project-f/raw/master/image/image-20211202172724276.png)
+
+> 因为带有\$的类名和方法名在Java中是不合法的，所以我们具有足够的安全性去使用内部类，但是如果使用十六进制编辑器重写class文件，创建了访问类私有字段的私有方法也是有可能的。
+>
+> 考虑一个私有内部类，它会怎么进行构造呢？编译器会这样做：生成的类有包可见性，而不是私有！生成一个私有构造器，然后通过一个包可见性的构造器调用第一个私有的构建器，这样就可以完成任务。
+>
+> ```java
+> class Charpter6.TalkingClock$TimerPrinter implements java.awt.event.ActionListener {
+>   final Charpter6.TalkingClock this$0;
+>   private Charpter6.TalkingClock$TimerPrinter(Charpter6.TalkingClock);
+>   public void actionPerformed(java.awt.event.ActionEvent);
+>   Charpter6.TalkingClock$TimerPrinter(Charpter6.TalkingClock, Charpter6.TalkingClock$1);
+> }
+> ```
+>
+> 这是用javap反解析工具查看这个类，发现有个包可见性的构造函数，然后自身的构造函数本身私有的，我们发现这个包可见性的函数：
+>
+> `Charpter6.TalkingClock$TimerPrinter(Charpter6.TalkingClock, Charpter6.TalkingClock$1);`
+>
+> 第二个参数为一个我们不熟悉的类，我们发现也有类的类文件，解析查看
+>
+> ```java
+> class Charpter6.TalkingClock$1 {
+> }
+> ```
+>
+> 我们发现它只是一个空类，使用这个参数只是为了区分它和默认构造方法，通常只为它传递一个null。
+
+### 局部内部类
+
+在上面我们使用内部类的，我们发生内部类的使用很有局限，我们只在start方法中创建了一个TimerPrinter对象，我们完全可以把这个类的声明放入到start方法中，这就是局部内部类。
+
+它相对于一般的内部类更加隐秘，不能在方法内的任何地方访问到这个内部类，它为完全隐藏的。
+
+而且相对于一般的类，它甚至可以访问到方法中的局部变量，我们把上次实现的内部类转为实现为局部内部类：
+
+```java
+public void start(boolean beep) {
+    class TimerPrinter implements ActionListener {
+        public void actionPerformed(ActionEvent e) {
+            System.out.println("At the tone, the time is " + Instant.ofEpochMilli(e.getWhen()));
+            if (beep) Toolkit.getDefaultToolkit().beep();
+        }
+    }
+    TimerPrinter timerPrinter = new TimerPrinter();
+    Timer timer = new Timer(interval, timerPrinter);
+    timer.start();
+}
+```
+
+我们将原本属于TalkingClock的字段beep作为方法参数传递到函数中来，这样我们也可以在内部类中访问到这个变量，这是一个很值得思考的过程，我们的方法不同于字段，能长久存在于对象的声明周期，一个方法在它被调用时候存在，在它返回时消亡，那个这个局部变量怎么存在于之后的回调呢？过程大概是这样：
+
+1. 调用start方法
+2. 调用内部类的构造器，初始化内部类变量timerPrinter
+3. 将变量传递给Timer计时器，定时器开始计时，`timer.start()`方法调用，这个方法退出，beep变量销毁。
+4. 1秒后，调用`actionPerformed`方法，执行了if(beep)的片段。
+
+实际上内部类是通过类似于Lambda的方式，在类中包括了调用变量，使用了捕获的方法，被捕获的对象需要是事实最终变量，我们可以通过反编译的方式查看这个现象：
+
+```java
+Compiled from "TalkingClock.java"
+class Charpter6.TalkingClock$1TimerPrinter implements java.awt.event.ActionListener {
+  final boolean val$beep;
+  final Charpter6.TalkingClock this$0;
+  Charpter6.TalkingClock$1TimerPrinter();
+  public void actionPerformed(java.awt.event.ActionEvent);
+}
+```
+
+这个类在\$后面有多加了一个1符号，里面有val$beep的字段，即为被捕获的内容，它是一个事实最终变量，而且它也会面对向lambda表达式一样的问题，确定一个可变对象作为事实变量可能会产生一些问题。
+
+### 匿名内部类
+
+基于上一个需求，我们可能需要更简化的内部类形式，甚至不需要一个内部类名称，创建一个匿名内部类，我们先来一下匿名内部类的语法：
+
+```java
+new SuperType(construction parameters) {
+	inner class method and data
+}
+```
+
+其中SuperType可以为超类和接口名称，但是只能为一个接口（不能像一个类一样，实现多个接口）实现类。
+
+实现类时，匿名内部类不可以有构造函数，只可以使用超类的构造器，在括号中传递所有参数；实现接口时，参数列表必须为空。
+
+但是我们可以在这样的类中做到更多，使用对象初始化块可以初始化我们需要的信息：
+
+```java
+ArrayList<String> list = new ArrayList<>(){
+    {add("1");add("2");add("3");}
+};
+```
+
+这样创建了一个ArrayList的子类并初始化了它的信息，这样称为双括号初始化。但是要切记这并不是一个ArrayList类对象，我们打印它的信息：
+
+```java
+System.out.println(list.getClass().getName());
+// Charpter6.UseTimerPrinter$1
+```
+
+它只是一个匿名子类，但是我们可以使用ArrayList引用它。
+
+我们可以用匿名内部类做些什么呢？从以往的经验来看，Java程序员会使用它来实现事件监听器和其他回调，我们在以后见证更多吧。
+
+> 在之前，我们发现了使用匿名内部类时它的类名不能正常显示，这可能当我们使用equals比较时候出现大问题：
+>
+> `getClass() != other.getClass()`这个判断一定会因为匿名内部类而失败，这是我们不想看到的，所以不要对匿名内部类使用类名比较！
+>
+> 可以使用`getEnclosingClass`获得一个内部类的对应外部类。
+
+### 静态内部类
+
+当我们使用一个类仅仅是想让它相对其他类隐蔽而且不需要它使用任何外部类的字段，我们可以使用静态内部类。
+
+我们来看一个例子：
+
+```java
+public class StaticInnerClassTest {
+    public static void main(String[] args) {
+        var values = new double[20];
+        for (int i = 0; i < 20; ++i) {
+            values[i] = 100 * Math.random();
+        }
+        ArrayAlg.Pair p = ArrayAlg.minmax(values);
+        System.out.println("min = " + p.getFirst());
+        System.out.println("max = " + p.getSecond());
+    }
+}
+
+class ArrayAlg{
+    public static class Pair{
+        /**
+         * (first, second) vector
+         * */
+        private double first, second;
+
+        /**
+         * return a pair of two double number
+         * @param first first double num
+         * @param second second double num
+         */
+        public Pair(double first, double second) {
+            this.first = first;
+            this.second = second;
+        }
+
+        /**
+         * Return first num of the pair
+         * @return the first num
+         */
+        public double getFirst() {
+            return first;
+        }
+
+        /**
+         * Return second num of the pair
+         * @return the second num
+         */
+        public double getSecond() {
+            return second;
+        }
+    }
+
+    public static Pair minmax (double[] value) {
+        double min = Double.MAX_VALUE;
+        double max = Double.MIN_VALUE;
+        for (var x: value) {
+            if (x > max) max = x;
+            if (x < min) min = x;
+        }
+        return new Pair(min, max);
+    }
+}
+```
