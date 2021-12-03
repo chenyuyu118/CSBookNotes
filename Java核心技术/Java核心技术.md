@@ -1,6 +1,6 @@
 # Java核心技术卷一 基础知识
 
-# 第3章 Java的基本程序设计结构
+# 第三章 Java的基本程序设计结构
 
 ## 3.3 数据类型
 
@@ -4272,3 +4272,271 @@ class ArrayAlg{
     }
 }
 ```
+
+Pair这个名称可能相对于其他类太常见了，我们使用静态内部类实现了对它的隐藏，我们只有使用`ArrayAlg.Pair`才能是实现对它的访问；而且我们的Pair类完全不需要访问类ArrayAlg的内容，所以鉴于此实现它为静态内部类十分合适。
+
+当我们企图在更丰富的区域使用内部类时，我们必须使用静态内部类，因为一个其他类型内部类对象都需要一个外部类对象引用，如果我们去掉Pair类的静态标识，那么在`minmax`方法中的调用将会报错，作为一个静态方法，没法给一个内部类对象提供一个外部类引用。
+
+> 当我们的内部类不需要使用外部类数据，就应该使用静态内部类。
+>
+> 我们可以在静态内部类中定义静态方法和静态字段，不同于一般内部类。
+>
+> 在接口中也可以定义内部类，而且总是为静态和公共。
+
+## 6.4 服务加载器
+
+有些时候我们需要一些服务，我们可以通过定义公共接口来明确所有我们需要的服务内容，我们也希望服务提供者有足够的自由为我们需要的服务提供不同的实现，这时候我们就可以通过服务加载器`ServerLoader`类，提取到符合公共接口的服务。
+
+假设我们有一个加密服务：
+
+```java
+public interface Cipher {
+    byte[] encrypt (byte[] source, byte[] key);
+    byte[] decrypt (byte[] source, byte[] key);
+    int strength();
+}
+```
+
+我们设计了实现这个服务的类，凯撒加密：
+
+```java
+package serverLoader.impl;
+
+import serverLoader.Cipher;
+
+public class CaesarCipher implements Cipher {
+    @Override
+    public byte[] encrypt(byte[] source, byte[] key) {
+        var result = new byte[source.length];
+        for (int i = 0; i < source.length; ++i) {
+            result[i] = (byte)(source[i] + key[0]);
+        }
+        return result;
+    }
+
+    @Override
+    public byte[] decrypt(byte[] source, byte[] key) {
+        return encrypt(source, new byte[] {(byte) -key[0]});
+    }
+
+    @Override
+    public int strength() {
+        return 1;
+    }
+}
+```
+
+对于服务的实现类，我们不需要它一定和服务接口所在类在同一个包，它可以在任意包，而且实现时必须要有一个无参数构造器。
+
+编写实现服务的部分后，我们可以配置`META-INF`文件:
+
+![image-20211203150338186](https://gitee.com/chenyuyu118/project-f/raw/master/image/image-20211203150338186.png)
+
+在serviceLoader.Cipher文件中使用UTF-8编码格式，添加下面服务实现说明的语句：
+
+```java‘
+serviceLoader.impl.CaesarCipher
+```
+
+下面我们来使用ServiceLoader类来加载服务：
+
+```java
+package Charpter6;
+
+import serviceLoader.Cipher;
+
+import java.util.Arrays;
+import java.util.Optional;
+import java.util.ServiceLoader;
+
+public class ServiceLoaderTest {
+    public static ServiceLoader<Cipher> cipherLoader = ServiceLoader.load(Cipher.class);
+
+    public static void main(String[] args) {
+        Cipher c1 = getCipher(0);
+        if (c1 != null) {
+            System.out.println(c1.getClass().getName());
+            byte[] s = {1, 2, 3, 4};
+            byte[] key = {1, 2};
+            byte[] s1 = c1.encrypt(s, key);
+            System.out.println(Arrays.toString(s));
+            System.out.println(Arrays.toString(s1));
+        }
+
+    }
+
+    public static Cipher getCipher(int minStrength) {
+        for (Cipher cipher: cipherLoader) {
+            if (cipher.strength() >= minStrength) return cipher;
+        }
+        return null;
+    }
+
+    public static Optional<Cipher> getCipher() {
+        return cipherLoader.stream()
+                .filter(descr -> descr.type() == serviceLoader.impl.CaesarCipher.class)
+                .findFirst()
+                .map(ServiceLoader.Provider::get);
+    }
+}
+/*
+serviceLoader.impl.CaesarCipher
+[1, 2, 3, 4]
+[2, 3, 4, 5]
+*/
+```
+
+通过`ServiceLoader.load`方法中传入Class类对象，我们可以加载接口的所有实现类，然后通过迭代的方法选择我们需要的实现类，当然我们可以像下面的一个方法一样使用流的方法来获取CaesarCipher，我们也可以添加更多的服务实现来供我们在不同的情况选择，服务加载器给与了我们灵活的选择。
+
+> 对于Optional<T>类型返回值，我们可以使用`getFirst`方法返回它的第一个实例。
+
+## 6.5 代理
+
+当我们在编译的时候还不能确定我们需要使用哪些接口时候，我们就可以使用代理来方便我们，代理类可在运行时候创建全新的类，这样我们的代理类可以实现我们需要的接口。
+
+一个代理类总是包括这些方法：
+
+- 指定接口的方法。
+- Object类的全部方法。
+
+我们的代理类拥有这些方法，但是我们不可以改变这些方法的代码，但是我们可以通过调用处理器处理调用这些方法时候使用的数据，然后决定如何进行这样的调用。
+
+代理类包括下面几个部分：
+
+- 类加载器，我们现在指定系统类加载器。
+- Class对象数组，每个对象对应需要实现的解耦。
+- 调用处理器。
+
+代理类可以帮助我们解决这样一些问题：
+
+- 将方法远程路由到远程服务器
+- 将运行的程序和用户界面关联起来
+- 为了调试，方便跟踪方法调用。
+
+了解了代理类的组成和部分，我们来具体了解一些它该如何被我们使用。
+
+### 调用处理器
+
+一个调用处理器是实现了`InvocationHandle`接口的类的对象，这个接口只包含一个方法：
+
+`Object invoke(Object proxy, Method method, Object[] args)`。
+
+看起来很像Method类的invoke方法，第一个为代理类，第二个为方法，第三个为实际参数。
+
+我们来编写一个调用处理器类：
+
+```java
+class TraceHandler implements InvocationHandler {
+    /**
+     * the target object to be Proxy
+     */
+    Object target;
+
+    /**
+     * init the target
+     * @param obj the object to be agent
+     */
+    TraceHandler(Object obj) {
+        target = obj;
+    }
+    
+    /**
+     * invoke method to show its detail
+     * @param proxy proxy object
+     * @param method method to use
+     * @param args args method need
+     * @return what methods need to return
+     */
+    @Override
+    public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+        System.out.print(target.toString() + ".");
+        System.out.print(method.getName() + "(");
+        if (args != null) {
+            for (int i = 0; i < args.length; ++i) {
+                if (i != 0) System.out.print(", ");
+                System.out.print(args[i]);
+            }
+        }
+        System.out.println();
+        return method.invoke(target, args);
+    }
+}
+```
+
+这个调用处理器会打印所有被代理的类和接口上的方法调用详情，它的运行过程即为当任意被代理的对象调用了方法，启动inoke方法，然后打印调用信息，返回原方法调用。
+
+### 代理创建
+
+现在我们已经有了一个调用处理器，现在我们来试着创建一个真正的代理类对象，一般我们使用`Proxy.newInstance`方法来完成这样的工作，它需要三个参数，正是我们之前了解的代理类的三个组成部分：我们使用系统类加载器`ClassLoader.getSystemClassLoader()`，这里代理比较接口和Employee类，`new Classs[] {Comparable.class, Employee.class}`，使用已经创建的调用处理器。下面是一个完整的测试：
+
+```java
+public class ProxyTest {
+    public static void main(String[] args) {
+        Employee[] employees = new Employee[] {
+                new Employee("zhang San", 20000, 2021, Calendar.FEBRUARY, 21),
+                new Employee("Li Si", 21000, 2021, Calendar.JANUARY, 12),
+                new Employee("Wang wu", 28000, 2021, Calendar.MARCH, 12)
+        };
+        Object [] objects = new Object[3];
+        int i = 0;
+        for (var employee : employees) {
+            TraceHandler handler = new TraceHandler(employee);
+            var proxy = Proxy.newProxyInstance(Employee.class.getClassLoader(), new Class[] {
+                Comparable.class
+            }, handler);
+            objects[i++] = proxy;
+        }
+        int index = Arrays.binarySearch(objects, new Employee("Li Si", 20000, 2021, Calendar.JANUARY, 12));
+        System.out.println(index);
+    }
+}
+/*
+Charpter6.Employee[name=Li Si,salary=21000.0,hireDay=Wed Jan 12 00:00:00 CST 3921].compareTo(Charpter6.Employee[name=Li Si,salary=20000.0,hireDay=Wed Jan 12 00:00:00 CST 3921])
+Charpter6.Employee[name=zhang San,salary=20000.0,hireDay=Mon Feb 21 00:00:00 CST 3921].compareTo(Charpter6.Employee[name=Li Si,salary=20000.0,hireDay=Wed Jan 12 00:00:00 CST 3921])
+0
+*/
+```
+
+它打印了我们所有比较过程中调用的compareTo函数，然后显示了查找结果。
+
+### 代理类的特性
+
+代理类有下面特性：
+
+- 默认代理Object
+- 唯一性
+- 不可继承和共有
+- 代理非公有不属于包
+
+代理类代理对象数组中的所有方法，然后还包含Object类的所有方法，包含toString，equals，hashCode方法，其他的clone和getClass没有代理。
+
+当我们这样使用代理类：
+
+```java
+System.out.println(objects[0].toString());
+/*
+Charpter6.Employee[name=zhang San,salary=20000.0,hireDay=Mon Feb 21 00:00:00 CST 3921].toString()
+Charpter6.Employee[name=zhang San,salary=20000.0,hireDay=Mon Feb 21 00:00:00 CST 3921]
+*/
+```
+
+它也会打印这个toString调用信息。
+
+一个代理类必须只有一个字段，其他所有运行时候需要的字段信息都保存在调用处理器中(这个字段为`h`，为它的对象处理器：![image-20211203171439148](https://gitee.com/chenyuyu118/project-f/raw/master/image/image-20211203171439148.png))
+
+我们在代理对象上可以调用任何代理的方法，然后都会转而调用调用处理器的`invoke`方法。
+
+代理类具有唯一性，对于一组固定的接口来说，他们的代理类是公共的一个，我们使用`newInstance`方法，使用多个参数相同的调用，它们产生的多个对象都属于一个同名的类。
+
+代理器总是final和public，它不可以被继承！
+
+代理类中如果所有代理的接口都是public，那么这个代理类就不属于任何特定的包，否则所有接口必须属于同一个包，然后这个代理类也属于这个包。
+
+> 我们可以通过Proxy类的静态方法来检测代理类：
+>
+> `static Class<?> getProxy(ClassLoader loader, Class<?>...interfaces)`，获得对应接口的代理类
+>
+> `static boolean isProxyClass(Class <?> cl)`判断一个类是否为代理类。
+
+# 第七章 异常、断言和日志
+
